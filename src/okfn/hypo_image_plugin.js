@@ -164,7 +164,13 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
   var default_selector = new annotorious.plugins.selection.RectDragSelector();
   default_selector.init(this._editCanvas, this);
   this._selectors.push(default_selector);
-  this._currentSelector = default_selector;
+
+  var poly_selector = new annotorious.plugins.PolygonSelector.Selector();
+  poly_selector.init(this, this._editCanvas);
+  this._selectors.push(poly_selector);
+
+  this._currentSelector = poly_selector;
+  //this._currentSelector = default_selector;
 
   this._viewer = new annotorious.mediatypes.image.Viewer(this._viewCanvas, this);
 
@@ -209,7 +215,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     guest.selectedShape = {
         selector: [{
             type: "ShapeSelector",
-            shapeType: "rect",
+            shapeType: event.shape.type,
             geometry: event.shape.geometry,
             source: image.src
         }]
@@ -241,18 +247,15 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
   AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, text) {
     var annotation = { text: text};
     annotation.source = selector.source;
-    var geometry = {
-        x : selector.geometry.x,
-        y : selector.geometry.y,
-        width : selector.geometry.width,
-        height : selector.geometry.height
-    }
-
     var subshape = null;
     if (selector.shapeType == 'rect') {
       subshape = new annotorious.shape.geom.Rectangle(
           selector.geometry.x, selector.geometry.y,
           selector.geometry.width, selector.geometry.height);
+    } else {
+        if (selector.shapeType == 'polygon') {
+          subshape = new annotorious.shape.geom.Polygon(selector.geometry.points);
+        }
     }
     var shape = new annotorious.shape.Shape(selector.shapeType, subshape, annotorious.shape.Units.FRACTION);
 
@@ -264,6 +267,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
 
   AnnotoriousImagePlugin.prototype['pluginInit'] = function() {
+    //annotorious.addPlugin('PolygonSelector', { activate: true })
     var images = this._el.getElementsByTagName('img');
     var self = this;
     goog.array.forEach(images, function(img, idx, array) {

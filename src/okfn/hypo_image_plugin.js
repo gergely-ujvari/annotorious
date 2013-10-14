@@ -239,8 +239,45 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
  */
 window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
+  /*
+  function addImageAnnotator(img, hypo_annotator) {
+    var imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(img);
+    imageAnnotator.guest = hypo_annotator;
+    var poly_selector = new annotorious.plugins.PolygonSelector.Selector();
+    poly_selector.init(imageAnnotator, imageAnnotator._editCanvas);
+    imageAnnotator._selectors.push(poly_selector);
+    imageAnnotator._currentSelector = poly_selector;
+
+    imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, function(event) {
+      console.log(event.shape);
+      imageAnnotator.guest.selectedShape = {
+        selector: [{
+            type: "ShapeSelector",
+            shapeType: event.shape.type,
+            geometry: event.shape.geometry,
+            source: image.src
+        }]
+      };
+
+      imageAnnotator.guest.onAdderClick(event);
+      var annotation = { src: imageAnnotator.image.src, shapes: [event.shape] };
+      self.addAnnotation(annotation);
+      self.stopSelection();
+    });
+
+    imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_CANCELED, function() {
+      if (annotorious.events.ui.hasMouse)
+      goog.style.showElement(self._editCanvas, false);
+      self._currentSelector.stopSelection();
+    });
+
+    return imageAnnotator;
+  }
+  */
+
   function AnnotoriousImagePlugin(element, options) {    
     this._el = element;
+    this.options = options;
     this.handlers = {};
   }
 
@@ -265,6 +302,16 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     handler.addAnnotation(annotation);
   }
 
+  AnnotoriousImagePlugin.prototype['addImage'] = function(img, annotator, custom_src) {
+    console.log(this.handlers);
+    var images = this._el.getElementsByTagName('img');
+    var res = new annotorious.hypo.ImagePlugin(img, annotator);
+    if (custom_src) {
+      this.handlers[custom_src] = res;
+    } else {
+      this.handlers[img.src] = res;
+    }
+  }
 
   AnnotoriousImagePlugin.prototype['pluginInit'] = function() {
     //annotorious.addPlugin('PolygonSelector', { activate: true })
@@ -272,7 +319,12 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     var self = this;
     goog.array.forEach(images, function(img, idx, array) {
       //new annotorious.mediatypes.image.ImageAnnotator(img);
+      //self.addImage(img, self['annotator']);
       var res = new annotorious.hypo.ImagePlugin(img, self['annotator']);
+      if (self.options.read_only) {
+          res._selectionEnabled = false;
+      }
+      //var res = addImageAnnotator(img, self['annotator']);
       self.handlers[img.src] = res;
     });
   }

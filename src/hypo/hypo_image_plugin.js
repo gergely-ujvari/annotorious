@@ -36,7 +36,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     this._popup.addAnnotator(this._imageAnnotator);
 
     //Add polygon selector to imageAnnotator
-    var poly_selector = new annotorious.plugins.PolygonSelector.Selector();
+    var poly_selector = new annotorious.plugin.PolygonSelector.Selector();
     poly_selector.init(this._imageAnnotator, this._imageAnnotator._editCanvas);
     this._imageAnnotator._selectors.push(poly_selector);
     this._imageAnnotator._currentSelector = poly_selector;

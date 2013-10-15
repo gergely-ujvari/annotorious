@@ -33,6 +33,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     //Initialize imageAnnotor with our custom Popup
     this._popup = new annotorious.hypo.Popup(image, this._guest, this._eventBroker);
     this._imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(image, this._popup);
+    this._popup.addAnnotator(this._imageAnnotator);
 
     //Add polygon selector to imageAnnotator
     var poly_selector = new annotorious.plugins.PolygonSelector.Selector();
@@ -41,7 +42,6 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     this._imageAnnotator._currentSelector = poly_selector;
 
     var self = this;
-    //Add selection handlers
 
     //Remove the default selection handlers
     var selectionHandler = this._imageAnnotator._eventBroker._handlers[annotorious.events.EventType.SELECTION_COMPLETED][0];
@@ -49,10 +49,8 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_COMPLETED, selectionHandler);
     this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_CANCELED, cancelHandler);
 
+    //Add selection handlers
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, function(event) {
-      console.log('Event selection completed');
-      console.log(event.shape);
-      document.test = self;
       self._guest.selectedShape = {
         selector: [{
             type: "ShapeSelector",
@@ -85,6 +83,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
 
   annotorious.hypo.ImagePlugin.prototype.disableSelection = function() {
       this._imageAnnotator._selectionEnabled = false;
+      this._imageAnnotator._hint = null;
       //ToDo: remove Click and drag to Annotate label
   }
 }
@@ -126,7 +125,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     goog.array.forEach(images, function(img, idx, array) {
       var res = new annotorious.hypo.ImagePlugin(img, self['annotator']);
       if (self.options.read_only) {
-          res._imageAnnotator._selectionEnabled = false;
+          res.disableSelection();
       }
       self.handlers[img.src] = res;
     });

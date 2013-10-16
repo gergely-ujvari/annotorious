@@ -87,6 +87,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
    */
   annotorious.hypo.ImagePlugin.prototype.addAnnotation = function(annotation) {
     this._imageAnnotator.addAnnotation(annotation);
+    this._annotations[annotation.id] = annotation;
   }
 
   annotorious.hypo.ImagePlugin.prototype.updateAnnotation = function(id, hypoAnnotation) {
@@ -118,8 +119,11 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     this.handlers = {};
   }
 
-  AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, text) {
-    var annotation = { text: text};
+  AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {
+    var annotation = {
+        text: hypoAnnotation.text,
+        id: hypoAnnotation.id
+    };
     annotation.source = selector.source;
     var subshape = null;
     if (selector.shapeType == 'rect') {
@@ -137,6 +141,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
     var handler = this.handlers[annotation.source];
     handler.addAnnotation(annotation);
+
   }
 
   AnnotoriousImagePlugin.prototype['updateAnnotation'] = function(hypoAnnotation) {

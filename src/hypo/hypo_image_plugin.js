@@ -109,16 +109,15 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
       annotation.text = hypoAnnotation.text;
   }
 
-  annotorious.hypo.ImagePlugin.prototype.deleteAnnotation = function(hypoAnnotation) {
-    if(!(hypoAnnotation.id in this._annotations)) {
+  annotorious.hypo.ImagePlugin.prototype.deleteAnnotation = function(id, hypoAnnotation) {
+    if(!(id in this._annotations)) {
         return;
     }
-    var annotation = this._annotations[hypoAnnotation.id];
+    var annotation = this._annotations[id];
     this._imageAnnotator.removeAnnotation(annotation);
 
-    delete this._annotations[hypoAnnotation.id];
+    delete this._annotations[id];
   }
-
 
   annotorious.hypo.ImagePlugin.prototype.disableSelection = function() {
       this._imageAnnotator._selectionEnabled = false;
@@ -165,7 +164,11 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
   AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(hypoAnnotation) {
     var source = hypoAnnotation.target[0].selector[0].source;
     var handler = this.handlers[source];
-    handler.deleteAnnotation(hypoAnnotation);
+    var id = null;
+    if ('id' in hypoAnnotation) { id = hypoAnnotation.id; }
+    else { id = hypoAnnotation.temporaryImageID; }
+
+    handler.deleteAnnotation(id, hypoAnnotation);
   }
 
   AnnotoriousImagePlugin.prototype['updateAnnotation'] = function(hypoAnnotation) {
@@ -209,7 +212,6 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     });
 
     this['annotator'].subscribe('annotationDeleted', function(annotation) {
-      console.log('DeleteAnnotation message');
       if ('target' in annotation) {
           annotation.target.forEach(function(target) {
              if ('selector' in target && target.selector.length > 0) {

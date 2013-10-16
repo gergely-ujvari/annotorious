@@ -91,6 +91,9 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
   }
 
   annotorious.hypo.ImagePlugin.prototype.updateAnnotation = function(id, hypoAnnotation) {
+      if(!(id in this._annotations)) {
+        return;
+      }
       var annotation = this._annotations[id];
 
       // hypoAnnotation.id has been changed (temporary image ID is gone)
@@ -102,6 +105,9 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
   }
 
   annotorious.hypo.ImagePlugin.prototype.deleteAnnotation = function(hypoAnnotation) {
+    if(!(hypoAnnotation.id in this._annotations)) {
+        return;
+    }
     var annotation = this._annotations[hypoAnnotation.id];
     this._imageAnnotator.removeAnnotation(annotation);
 
@@ -183,8 +189,35 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
       }
       self.handlers[img.src] = res;
     });
+
+    // Notify us for the changes
+    this['annotator'].subscribe('annotationUpdated', function(annotation) {
+      if ('target' in annotation) {
+          annotation.target.forEach(function(target) {
+             if ('selector' in target && target.selector.length > 0) {
+                 if (target.selector[0].type == 'ShapeSelector') {
+                    self.updateAnnotation(annotation);
+                 }
+             }
+          });
+      }
+    });
+
+    this['annotator'].subscribe('annotationDeleted', function(annotation) {
+      console.log('DeleteAnnotation message');
+      if ('target' in annotation) {
+          annotation.target.forEach(function(target) {
+             if ('selector' in target && target.selector.length > 0) {
+                 if (target.selector[0].type == 'ShapeSelector') {
+                    self.deleteAnnotation(annotation);
+                 }
+             }
+          });
+      }
+    });
+
   }
-  
+
   return AnnotoriousImagePlugin;
 })();
 

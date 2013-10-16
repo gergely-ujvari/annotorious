@@ -40,7 +40,12 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     var poly_selector = new annotorious.plugin.PolygonSelector.Selector();
     poly_selector.init(this._imageAnnotator, this._imageAnnotator._editCanvas);
     this._imageAnnotator._selectors.push(poly_selector);
-    this._imageAnnotator._currentSelector = poly_selector;
+
+    var fancybox_selector = new annotorious.plugin.FancyBoxSelector.Selector();
+    fancybox_selector.init(this._imageAnnotator, this._imageAnnotator._editCanvas);
+    this._imageAnnotator._selectors.push(fancybox_selector);
+
+    this._imageAnnotator._currentSelector = fancybox_selector;
 
     var self = this;
 

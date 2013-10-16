@@ -98,9 +98,16 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
           this._annotations[hypoAnnotation.id] = annotation;
           delete this._annotations[id];
       }
-
       annotation.text = hypoAnnotation.text;
   }
+
+  annotorious.hypo.ImagePlugin.prototype.deleteAnnotation = function(hypoAnnotation) {
+    var annotation = this._annotations[hypoAnnotation.id];
+    this._imageAnnotator.removeAnnotation(annotation);
+
+    delete this._annotations[hypoAnnotation.id];
+  }
+
 
   annotorious.hypo.ImagePlugin.prototype.disableSelection = function() {
       this._imageAnnotator._selectionEnabled = false;
@@ -142,6 +149,12 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     var handler = this.handlers[annotation.source];
     handler.addAnnotation(annotation);
 
+  }
+
+  AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(hypoAnnotation) {
+    var source = hypoAnnotation.target[0].selector[0].source;
+    var handler = this.handlers[source];
+    handler.deleteAnnotation(hypoAnnotation);
   }
 
   AnnotoriousImagePlugin.prototype['updateAnnotation'] = function(hypoAnnotation) {

@@ -45,7 +45,8 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     fancybox_selector.init(this._imageAnnotator, this._imageAnnotator._editCanvas);
     this._imageAnnotator._selectors.push(fancybox_selector);
 
-    this._imageAnnotator._currentSelector = fancybox_selector;
+    //this._imageAnnotator._currentSelector = fancybox_selector;
+    this._imageAnnotator._currentSelector = poly_selector;
 
     var self = this;
 
@@ -139,7 +140,8 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
   AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {
     var annotation = {
         text: hypoAnnotation.text,
-        id: hypoAnnotation.id
+        id: hypoAnnotation.id,
+        hypoAnnotation: hypoAnnotation
     };
     annotation.source = selector.source;
     var subshape = null;
@@ -186,6 +188,54 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     handler.updateAnnotation(id, hypoAnnotation);
   }
 
+  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(wrapper, defaultView, bucket_size, bucket_threshold_path, above, below) {
+    document.test = this._el;
+    var self = this;
+    var images = Array.prototype.slice.call(this._el.getElementsByTagName('img'));
+    var points = images.reduce(function(points, img, i) {
+        var bound = img.getBoundingClientRect();
+        var imagex = bound.top - wrapper.offset().top - defaultView.pageYOffset;
+        var imageh = bound.height;
+        //var imagex = $(img).offset().top - wrapper.offset().top - defaultView.pageYOffset;
+        //var imageh = $(img).outerHeight(true);
+
+        for (var id in self.handlers[img.src]._annotations) {
+            var d = self.handlers[img.src]._annotations[id].hypoAnnotation;
+            var selector = d.target[0].selector[0];
+            var annotationx = 0;
+            var annotationh = 0;
+            if (selector.shapeType == 'rect') {
+                annotationx = bound.height * selector.geometry.y;
+                annotationh = bound.height * selector.geometry.height;
+            } else if (selector.shapeType == 'polygon') {
+                var minY = 1;
+                var maxY = 0;
+                for (var index in selector.geometry.points) {
+                    var point = selector.geometry.points[index];
+                    if (point.y < minY) { minY = point.y};
+                    if (point.y > maxY) { maxY = point.y};
+                }
+                annotationx = bound.height * minY;
+                annotationh = bound.height * (maxY - minY);
+            }
+            var x = imagex + annotationx;
+            var h = annotationh;
+
+            if (x <= bucket_size + bucket_threshold_path) {
+                if (!(d in above)) { above.push(d); }
+            } else if (x + h >= $(window).height() - bucket_size) {
+                if (!(d in below)) { below.push(d); }
+            } else {
+                points.push([x, 1, d]);
+                points.push([x + h, -1, d]);
+            }
+        }
+
+        return points;
+    }, []);
+
+    return points;
+  }
 
   AnnotoriousImagePlugin.prototype['pluginInit'] = function() {
     var images = this._el.getElementsByTagName('img');

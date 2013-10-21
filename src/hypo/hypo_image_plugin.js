@@ -87,6 +87,20 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
       self._imageAnnotator._currentSelector.stopSelection();
     });
 
+    var activeCanvas = (annotorious.events.ui.hasTouch) ? this._imageAnnotator._editCanvas : this._imageAnnotator._viewCanvas;
+    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
+        var coords = annotorious.events.ui.sanitizeCoordinates(event, activeCanvas);
+        var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
+
+        var hypoAnnotations = [];
+        for (var index in annotations) {
+            var hypoAnnotation = annotations[index].hypoAnnotation;
+            hypoAnnotations.push(hypoAnnotation);
+        }
+
+        self._guest.showViewer(hypoAnnotations);
+    });
+
   /**
    * add an annotation to the ImageAnnotator
    * @param annotation: the annotation to add

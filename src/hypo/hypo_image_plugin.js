@@ -45,8 +45,8 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     fancybox_selector.init(this._imageAnnotator, this._imageAnnotator._editCanvas);
     this._imageAnnotator._selectors.push(fancybox_selector);
 
-    //this._imageAnnotator._currentSelector = fancybox_selector;
-    this._imageAnnotator._currentSelector = poly_selector;
+    this._imageAnnotator._currentSelector = fancybox_selector;
+    //this._imageAnnotator._currentSelector = poly_selector;
 
     var self = this;
 
@@ -235,6 +235,40 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     }, []);
 
     return points;
+  }
+
+  AnnotoriousImagePlugin.prototype['setActiveHighlights'] = function(tags) {
+    for (var image_src in this.handlers) {
+        var handler = this.handlers[image_src];
+        var handlerHasHiglight = false;
+        for (var annotation_id in handler._annotations) {
+            var annotation = handler._annotations[annotation_id];
+            var shape = annotation.shapes[0];
+
+            // viewer._draw only accepts coordinates in pixels.
+            if (shape.units == annotorious.shape.Units.FRACTION) {
+              var viewportShape = annotorious.shape.transform(shape, function(xy) {
+                return handler._imageAnnotator.fromItemCoordinates(xy);
+              });
+              shape = viewportShape;
+            }
+
+            // Draw the highlights
+            if (tags.indexOf(annotation.hypoAnnotation.$$tag) != -1) {
+                handler._imageAnnotator._viewer._draw(shape, true);
+                handlerHasHiglight = true;
+            } else {
+                handler._imageAnnotator._viewer._draw(shape, false);
+            }
+        }
+
+        // Draw the higlights
+        if (handlerHasHiglight) {
+          goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
+        } else {
+          goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-focus', 'annotorious-item-unfocus');
+        }
+    }
   }
 
   AnnotoriousImagePlugin.prototype['pluginInit'] = function() {

@@ -62,8 +62,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
       var date = new Date()
       event.temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
-      // Generate selector
-      self._guest.selectedShape = {
+      var selector =  {
         selector: [{
             type: "ShapeSelector",
             shapeType: event.shape.type,
@@ -72,7 +71,16 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
         }]
       };
 
-      var annotation = { src: self._imageAnnotator._image.src, shapes: [event.shape] };
+      // Generate selector
+      self._guest.selectedShape = selector;
+
+      var annotation = {
+          src: self._imageAnnotator._image.src,
+          shapes: [event.shape],
+          hypoAnnotation: {
+              target: [selector]
+          }
+      };
       self._annotations[event.temporaryImageID] = annotation;
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();

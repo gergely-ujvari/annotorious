@@ -130,6 +130,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
           delete this._annotations[id];
       }
       annotation.text = hypoAnnotation.text;
+      annotation.hypoAnnotation = hypoAnnotation;
   }
 
   annotorious.hypo.ImagePlugin.prototype.deleteAnnotation = function(id, hypoAnnotation) {
@@ -210,7 +211,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     handler.updateAnnotation(id, hypoAnnotation);
   }
 
-  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(wrapper, defaultView, bucket_size, bucket_threshold_path, above, below) {
+  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(wrapper, defaultView, bucket_size, bucket_threshold_path, above, below, window_height) {
     document.test = this._el;
     var self = this;
     var images = Array.prototype.slice.call(this._el.getElementsByTagName('img'));
@@ -245,7 +246,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
             if (x <= bucket_size + bucket_threshold_path) {
                 if (!(d in above)) { above.push(d); }
-            } else if (x + h >= $(window).height() - bucket_size) {
+            } else if (x + h >= window_height - bucket_size) {
                 if (!(d in below)) { below.push(d); }
             } else {
                 points.push([x, 1, d]);

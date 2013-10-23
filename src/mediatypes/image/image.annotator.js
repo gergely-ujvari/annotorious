@@ -119,6 +119,8 @@ annotorious.mediatypes.image.ImageAnnotator = function(item, opt_popup) {
 
   var activeCanvas = (annotorious.events.ui.hasTouch) ? this._editCanvas : this._viewCanvas;
   goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
+    event.preventDefault();
+
     var coords = annotorious.events.ui.sanitizeCoordinates(event, activeCanvas);
     self._viewer.highlightAnnotation(undefined);
 

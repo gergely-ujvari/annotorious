@@ -212,7 +212,6 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(wrapper, defaultView, bucket_size, bucket_threshold_path, above, below, window_height) {
-    document.test = this._el;
     var self = this;
     var images = Array.prototype.slice.call(this._el.getElementsByTagName('img'));
     var points = images.reduce(function(points, img, i) {

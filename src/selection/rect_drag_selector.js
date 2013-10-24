@@ -29,6 +29,9 @@ annotorious.plugins.selection.RectDragSelector.prototype.init = function(canvas,
   this._HI_STROKE = '#fff000';
   
   /** @private **/
+  this._HIPO_STROKE = '#ff7f00';
+
+  /** @private **/
   this._HI_FILL = undefined;
 	
   /** @private **/
@@ -254,18 +257,24 @@ annotorious.plugins.selection.RectDragSelector.prototype.getViewportBounds = fun
  * @param {annotorious.shape.Shape} shape the shape to draw
  * @param {boolean=} highlight if true, shape will be drawn highlighted
  */
-annotorious.plugins.selection.RectDragSelector.prototype.drawShape = function(g2d, shape, highlight) {
+annotorious.plugins.selection.RectDragSelector.prototype.drawShape = function(g2d, shape, highlight, extrahlighlight) {
   var geom, stroke, fill;
   
   if (shape.type == annotorious.shape.ShapeType.RECTANGLE) {
-    if (highlight) {
-      g2d.lineWidth = 1.2;
-      stroke = this._HI_STROKE;
-      fill = this._HI_FILL;
+    if (extrahlighlight) {
+        g2d.lineWidth = 1.2;
+        stroke = this._HIPO_STROKE;
+        fill = this._HI_FILL;
     } else {
-      g2d.lineWidth = 1;
-      stroke = this._STROKE;
-      fill = this._FILL;
+      if (highlight) {
+        g2d.lineWidth = 1.2;
+        stroke = this._HI_STROKE;
+        fill = this._HI_FILL;
+      } else {
+        g2d.lineWidth = 1;
+        stroke = this._STROKE;
+        fill = this._FILL;
+      }
     }
 
     geom = shape.geometry;

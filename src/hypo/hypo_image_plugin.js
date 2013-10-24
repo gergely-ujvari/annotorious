@@ -259,7 +259,7 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     return points;
   }
 
-  AnnotoriousImagePlugin.prototype['setActiveHighlights'] = function(tags) {
+  AnnotoriousImagePlugin.prototype['setActiveHighlights'] = function(tags, visibleHighlights) {
     for (var image_src in this.handlers) {
         var handler = this.handlers[image_src];
         var handlerHasHiglight = false;
@@ -277,18 +277,54 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
             // Draw the highlights
             if (tags.indexOf(annotation.hypoAnnotation.$$tag) != -1) {
-                handler._imageAnnotator._viewer._draw(shape, true);
+                if (visibleHighlights) {
+                    handler._imageAnnotator._viewer._draw(shape, true, true);
+                } else {
+                    handler._imageAnnotator._viewer._draw(shape, true);
+                }
                 handlerHasHiglight = true;
             } else {
-                handler._imageAnnotator._viewer._draw(shape, false);
+                if (!visibleHighlights) {
+                    handler._imageAnnotator._viewer._draw(shape, false);
+                } else {
+                    handler._imageAnnotator._viewer._draw(shape, true);
+                }
             }
         }
 
-        // Draw the higlights
-        if (handlerHasHiglight) {
-          goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
-        } else {
-          goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-focus', 'annotorious-item-unfocus');
+        if (!visibleHighlights) {
+            // Draw the higlights
+            if (handlerHasHiglight) {
+              goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
+            } else {
+              goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-focus', 'annotorious-item-unfocus');
+            }
+        }
+    }
+  }
+
+  AnnotoriousImagePlugin.prototype['switchHighlightAll'] = function(onoff) {
+    for (var image_src in this.handlers) {
+        var handler = this.handlers[image_src];
+        handler._imageAnnotator._viewer.setVisibleMode(onoff);
+        for (var annotation_id in handler._annotations) {
+            var annotation = handler._annotations[annotation_id];
+            var shape = annotation.shapes[0];
+
+            // viewer._draw only accepts coordinates in pixels.
+            if (shape.units == annotorious.shape.Units.FRACTION) {
+              var viewportShape = annotorious.shape.transform(shape, function(xy) {
+                return handler._imageAnnotator.fromItemCoordinates(xy);
+              });
+              shape = viewportShape;
+            }
+
+            // Draw the highlights
+            if (onoff) {
+                handler._imageAnnotator._viewer._draw(shape, true);
+            } else {
+                handler._imageAnnotator._viewer._draw(shape, false);
+            }
         }
     }
   }

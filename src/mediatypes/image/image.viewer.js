@@ -35,6 +35,9 @@ annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
   /** @private **/
   this._keepHighlighted = false;
 
+  /** @private **/
+  this._visibleMode = false;
+
   var self = this; 
   goog.events.listen(this._canvas, annotorious.events.ui.EventType.MOVE, function(event) {
     if (self._eventsEnabled) {
@@ -236,13 +239,13 @@ annotorious.mediatypes.image.Viewer.prototype._onMouseMove = function(event) {
  * @param {boolean=} highlight set true to highlight the shape
  * @private
  */
-annotorious.mediatypes.image.Viewer.prototype._draw = function(shape, highlight) {
+annotorious.mediatypes.image.Viewer.prototype._draw = function(shape, highlight, extrahighlight) {
   var selector = goog.array.find(this._annotator.getAvailableSelectors(), function(selector) {
     return selector.getSupportedShapeType() == shape.type;
   });  
 
   if (selector)
-    selector.drawShape(this._g2d, shape, highlight);
+    selector.drawShape(this._g2d, shape, highlight, extrahighlight);
   else
     console.log('WARNING unsupported shape type: ' + shape.type);
 }
@@ -256,15 +259,27 @@ annotorious.mediatypes.image.Viewer.prototype.redraw = function() {
   var self = this;
   goog.array.forEach(this._annotations, function(annotation) {
 	if (annotation != self._currentAnnotation)
-      self._draw(self._shapes[annotorious.shape.hashCode(annotation.shapes[0])]);
+      if (self._visibleMode) {
+        self._draw(self._shapes[annotorious.shape.hashCode(annotation.shapes[0])], true);
+      } else {
+        self._draw(self._shapes[annotorious.shape.hashCode(annotation.shapes[0])]);
+      }
   });
     
   if (this._currentAnnotation) {
     var shape = this._shapes[annotorious.shape.hashCode(this._currentAnnotation.shapes[0])];
-    this._draw(shape, true);
+    if (this._visibleMode) {
+        this._draw(shape, true, true);
+    } else {
+        this._draw(shape, true);
+    }
     var bbox = annotorious.shape.getBoundingRect(shape).geometry;
     this._annotator.popup.show(this._currentAnnotation, new annotorious.shape.geom.Point(bbox.x, bbox.y + bbox.height + 5));
 
     // TODO Orientation check - what if the popup would be outside the viewport?
   }
+}
+
+annotorious.mediatypes.image.Viewer.prototype.setVisibleMode = function(visibleMode) {
+    this._visibleMode = visibleMode;
 }

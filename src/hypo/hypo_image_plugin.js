@@ -303,6 +303,32 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     }
   }
 
+  AnnotoriousImagePlugin.prototype['collectDynamicBucket'] = function(top, bottom) {
+    var visible = []
+    for (var image_src in this.handlers) {
+        var handler = this.handlers[image_src];
+        var bound = handler._image.getBoundingClientRect();
+        var imagex = bound.top;
+        for (var annotation_id in handler._annotations) {
+            var annotation = handler._annotations[annotation_id];
+            var hypoAnnotation = annotation.hypoAnnotation;
+            var selector = hypoAnnotation.target[0].selector[0];
+
+            var annotationx = 0;
+            if (selector.shapeType == 'rect') {
+                annotationx = bound.height * selector.geometry.y;
+            }
+
+            var annotation_top = imagex + annotationx;
+            if (annotation_top >= top && annotation_top <= bottom) {
+                visible.push(hypoAnnotation);
+            }
+        }
+    }
+
+    return visible;
+  }
+
   AnnotoriousImagePlugin.prototype['switchHighlightAll'] = function(onoff) {
     for (var image_src in this.handlers) {
         var handler = this.handlers[image_src];

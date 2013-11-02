@@ -211,12 +211,15 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
     handler.updateAnnotation(id, hypoAnnotation);
   }
 
-  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(wrapper, defaultView, bucket_size, bucket_threshold_path, above, below, window_height) {
+  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(bucket_size, bucket_threshold_path, above, below, window_height) {
     var self = this;
+    var wrapper = self['annotator'].wrapper;
+    var defaultView = wrapper[0].ownerDocument.defaultView;
+
     var images = Array.prototype.slice.call(this._el.getElementsByTagName('img'));
     var points = images.reduce(function(points, img, i) {
         var bound = img.getBoundingClientRect();
-        var imagex = bound.top - wrapper.offset().top - defaultView.pageYOffset;
+        var imagex = bound.top - wrapper.offset().top;
         var imageh = bound.height;
         //var imagex = $(img).offset().top - wrapper.offset().top - defaultView.pageYOffset;
         //var imageh = $(img).outerHeight(true);
@@ -242,7 +245,6 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
             }
             var x = imagex + annotationx;
             var h = annotationh;
-
             if (x <= bucket_size + bucket_threshold_path) {
                 if (!(d in above)) { above.push(d); }
             } else if (x + h >= window_height - bucket_size) {

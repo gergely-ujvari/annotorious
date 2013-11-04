@@ -1,5 +1,7 @@
 goog.provide('annotorious.mediatypes.image.Viewer');
 
+goog.require('annotorious.shape.style');
+
 /**
  * The image viewer - the central entity that manages annotations 
  * displayed for one image.
@@ -84,8 +86,9 @@ annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
  * Adds an annotation to the viewer.
  * @param {annotorious.Annotation} annotation the annotation
  * @param {annotorious.Annotation=} opt_replace optionally, an existing annotation to replace
+ * @param {annotorious.shape.style.ShapeStyles} optional shapeStyles to add for the annotation
  */
-annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotation, opt_replace) {
+annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotation, opt_replace, shapeStyles) {
   // Remove opt_replace, if specified
   if (opt_replace) {
     if (opt_replace == this._currentAnnotation)
@@ -99,6 +102,12 @@ annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotatio
   
   // The viewer always operates in pixel coordinates for efficiency reasons
   var shape = annotation.shapes[0];
+
+  if (shapeStyles)
+    shape.styles = shapeStyles;
+  else
+    shape.styles = annotorious.shape.style.DefaultShapeStyles;
+
   if (shape.units == annotorious.shape.Units.PIXEL) {
     this._shapes[annotorious.shape.hashCode(annotation.shapes[0])] = shape;     
   } else {
@@ -233,16 +242,15 @@ annotorious.mediatypes.image.Viewer.prototype._onMouseMove = function(event) {
 
 /**
  * @param {annotorious.shape.Shape} shape the shape
- * @param {boolean=} highlight set true to highlight the shape
  * @private
  */
-annotorious.mediatypes.image.Viewer.prototype._draw = function(shape, highlight) {
+annotorious.mediatypes.image.Viewer.prototype._draw = function(shape) {
   var selector = goog.array.find(this._annotator.getAvailableSelectors(), function(selector) {
     return selector.getSupportedShapeType() == shape.type;
   });  
 
   if (selector)
-    selector.drawShape(this._g2d, shape, highlight);
+    selector.drawShape(this._g2d, shape);
   else
     console.log('WARNING unsupported shape type: ' + shape.type);
 }
@@ -255,13 +263,17 @@ annotorious.mediatypes.image.Viewer.prototype.redraw = function() {
 
   var self = this;
   goog.array.forEach(this._annotations, function(annotation) {
-	if (annotation != self._currentAnnotation)
-      self._draw(self._shapes[annotorious.shape.hashCode(annotation.shapes[0])]);
+	if (annotation != self._currentAnnotation) {
+      var shape = self._shapes[annotorious.shape.hashCode(annotation.shapes[0])];
+      shape.currentStyle = 'default';
+      self._draw(shape);
+    }
   });
     
   if (this._currentAnnotation) {
     var shape = this._shapes[annotorious.shape.hashCode(this._currentAnnotation.shapes[0])];
-    this._draw(shape, true);
+    shape.currentStyle = 'highlight';
+    this._draw(shape);
     var bbox = annotorious.shape.getBoundingRect(shape).geometry;
     this._annotator.popup.show(this._currentAnnotation, new annotorious.shape.geom.Point(bbox.x, bbox.y + bbox.height + 5));
 

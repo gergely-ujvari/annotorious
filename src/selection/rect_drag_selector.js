@@ -252,36 +252,41 @@ annotorious.plugins.selection.RectDragSelector.prototype.getViewportBounds = fun
  * TODO not sure if this is really the best way/architecture to handle viewer shape drawing
  * @param {Object} g2d graphics context
  * @param {annotorious.shape.Shape} shape the shape to draw
- * @param {boolean=} highlight if true, shape will be drawn highlighted
+ * @param {string} force a shapeStyle, if not given then the shape.currentStyle will be used
  */
-annotorious.plugins.selection.RectDragSelector.prototype.drawShape = function(g2d, shape, highlight) {
-  var geom, stroke, fill;
+annotorious.plugins.selection.RectDragSelector.prototype.drawShape = function(g2d, shape, style) {
+  var geom, outline, stroke, fill, shapeStyle;
   
   if (shape.type == annotorious.shape.ShapeType.RECTANGLE) {
-    if (highlight) {
-      g2d.lineWidth = 1.2;
-      stroke = this._HI_STROKE;
-      fill = this._HI_FILL;
-    } else {
-      g2d.lineWidth = 1;
-      stroke = this._STROKE;
-      fill = this._FILL;
-    }
+    if (style)
+        shapeStyle = shape.styles[style];
+    else
+        shapeStyle = shape.styles[shape.currentStyle];
 
+    outline = shapeStyle[annotorious.shape.style.StyleType.OUTLINE];
+    stroke = shapeStyle[annotorious.shape.style.StyleType.STROKE];
+    fill = shapeStyle[annotorious.shape.style.StyleType.FILL];
     geom = shape.geometry;
 
     // Outline
-    g2d.strokeStyle = this._OUTLINE;      
-    g2d.strokeRect(geom.x + 0.5, geom.y + 0.5, geom.width + 1, geom.height + 1);
+    if (outline.color) {
+        g2d.strokeStyle = outline.color;
+        g2d.lineWidth = outline.lineWidth;
+        g2d.strokeRect(geom.x + 0.5, geom.y + 0.5, geom.width + 1, geom.height + 1);
+    }
 
     // Stroke
-    g2d.strokeStyle = stroke;
-    g2d.strokeRect(geom.x + 1.5, geom.y + 1.5, geom.width - 1, geom.height - 1);
- 
+    if (stroke.color) {
+        g2d.strokeStyle = stroke.color;
+        g2d.lineWidth = stroke.lineWidth;
+        g2d.strokeRect(geom.x + 1.5, geom.y + 1.5, geom.width - 1, geom.height - 1);
+    }
+
     // Fill   
-    if (fill) {
-      g2d.fillStyle = fill;
-      g2d.fillRect(geom.x + 1.5, geom.y + 1.5, geom.width - 1, geom.height - 1);
+    if (fill.color) {
+        g2d.fillStyle = fill.color;
+        g2d.lineWidth = fill.lineWidth;
+        g2d.fillRect(geom.x + 1.5, geom.y + 1.5, geom.width - 1, geom.height - 1);
     }
   }
 }

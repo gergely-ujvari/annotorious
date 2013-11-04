@@ -2,19 +2,33 @@ goog.provide('annotorious.shape');
 
 goog.require('annotorious.shape.geom.Polygon');
 goog.require('annotorious.shape.geom.Rectangle');
+goog.require('annotorious.shape.style');
 
 /**
  * A shape. Consists of descriptive shape metadata, plus the actual shape geometry.
  * @param {annotorious.shape.ShapeType} type the shape type
  * @param {annotorious.shape.geom.Point | annotorious.shape.geom.Rectangle | annotorious.shape.geom.Polygon} geometry the geometry
+ * @param {annotorious.shape.style.ShapeStyles} defines drawing color styles
  * @param {annotorious.shape.Units=} units geometry measurement units
+ * @param {string} use this color style.
  * @constructor
  */
-annotorious.shape.Shape = function(type, geometry, units) {
+
+
+annotorious.shape.Shape = function(type, geometry, units, shapeStyles , currentStyle) {
   this.type = type
   this.geometry = geometry;
   if (units)
     this.units = units;
+  if (shapeStyles)
+    this.styles = shapeStyles;
+  else
+    this.styles = annotorious.shape.style.DefaultShapeStyles;
+
+  if (currentStyle)
+    this.currentStyle = currentStyle;
+  else
+    this.currentStyle = 'default'
 }
 
 /**

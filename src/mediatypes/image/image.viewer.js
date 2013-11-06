@@ -86,9 +86,8 @@ annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
  * Adds an annotation to the viewer.
  * @param {annotorious.Annotation} annotation the annotation
  * @param {annotorious.Annotation=} opt_replace optionally, an existing annotation to replace
- * @param {annotorious.shape.style.ShapeStyles} optional shapeStyles to add for the annotation
  */
-annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotation, opt_replace, shapeStyles) {
+annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotation, opt_replace) {
   // Remove opt_replace, if specified
   if (opt_replace) {
     if (opt_replace == this._currentAnnotation)
@@ -103,9 +102,8 @@ annotorious.mediatypes.image.Viewer.prototype.addAnnotation = function(annotatio
   // The viewer always operates in pixel coordinates for efficiency reasons
   var shape = annotation.shapes[0];
 
-  if (shapeStyles)
-    shape.styles = shapeStyles;
-  else
+  // Add default style, if style is not defined.
+  if (!shape.styles)
     shape.styles = annotorious.shape.style.DefaultShapeStyles;
 
   if (shape.units == annotorious.shape.Units.PIXEL) {

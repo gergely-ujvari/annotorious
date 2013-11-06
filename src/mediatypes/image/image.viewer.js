@@ -7,9 +7,11 @@ goog.require('annotorious.shape.style');
  * displayed for one image.
  * @param {Element} canvas the canvas element 
  * @param {annotorious.mediatypes.image.ImageAnnotator} annotator reference to the annotator
+ * @param {String} style to use when drawing annotations except the current one (optional)
+ * @param {String} style to draw the currentAnnotation (optional)
  * @constructor
  */
-annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
+annotorious.mediatypes.image.Viewer = function(canvas, annotator, annotationStyle, currentAnnotationStyle) {
   /** @private **/
   this._canvas = canvas;
   
@@ -37,7 +39,19 @@ annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
   /** @private **/
   this._keepHighlighted = false;
 
-  var self = this; 
+  /** @private **/
+  if (annotationStyle)
+    this._annotationStyle = annotationStyle;
+  else
+    this._annotationStyle = 'default';
+
+  /** @private **/
+  if (currentAnnotationStyle)
+    this._currentAnnotationStyle = currentAnnotationStyle;
+  else
+    this._currentAnnotationStyle = 'highlight';
+
+  var self = this;
   goog.events.listen(this._canvas, annotorious.events.ui.EventType.MOVE, function(event) {
     if (self._eventsEnabled) {
       self._onMouseMove(event);
@@ -80,6 +94,16 @@ annotorious.mediatypes.image.Viewer = function(canvas, annotator) {
       self.redraw();
     }
   });
+}
+
+
+/**Resets the drawing style for the annotations to use
+ * @param {String} style to use when drawing annotations except the current one
+ * @param {String} style to draw the currentAnnotation
+ */
+annotorious.mediatypes.image.Viewer.prototype.setStyle = function(annotationStyle, currentAnnotationStyle) {
+  this._annotationStyle = annotationStyle;
+  this._currentAnnotationStyle = currentAnnotationStyle;
 }
 
 /**
@@ -263,14 +287,14 @@ annotorious.mediatypes.image.Viewer.prototype.redraw = function() {
   goog.array.forEach(this._annotations, function(annotation) {
 	if (annotation != self._currentAnnotation) {
       var shape = self._shapes[annotorious.shape.hashCode(annotation.shapes[0])];
-      shape.currentStyle = 'default';
+      shape.currentStyle = self._annotationStyle;
       self._draw(shape);
     }
   });
     
   if (this._currentAnnotation) {
     var shape = this._shapes[annotorious.shape.hashCode(this._currentAnnotation.shapes[0])];
-    shape.currentStyle = 'highlight';
+    shape.currentStyle = this._currentAnnotationStyle;
     this._draw(shape);
     var bbox = annotorious.shape.getBoundingRect(shape).geometry;
     this._annotator.popup.show(this._currentAnnotation, new annotorious.shape.geom.Point(bbox.x, bbox.y + bbox.height + 5));

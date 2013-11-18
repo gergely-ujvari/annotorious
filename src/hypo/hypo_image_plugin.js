@@ -22,17 +22,17 @@ if (!window['annotorious']['plugin'])
 /**
  * Implementation of the Yuma image plugin for Hypothes.is.
  * @param {Element} image the image to be annotated
- * @param {Object} Hyptohes.is guest reference to the embedded guest instance
+ * @param {Object} Annotator.Plugin.ImageAnchors reference
  * @constructor
  */
-annotorious.hypo.ImagePlugin = function(image, guest) {
+annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
     this._image = image;
     this._eventBroker = new annotorious.events.EventBroker();
-    this._guest = guest;
+    this._imagePlugin = imagePlugin;
     this._annotations = {};
 
     // Initialize imageAnnotor with our custom Popup
-    this._popup = new annotorious.hypo.Popup(image, this._guest, this._eventBroker);
+    this._popup = new annotorious.hypo.Popup(image, this._imagePlugin, this._eventBroker);
     this._imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(image, this._popup);
     this._popup.addAnnotator(this._imageAnnotator);
 
@@ -60,8 +60,8 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
     // Add selection handlers
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, function(event) {
       // Generate temporary id for the annotation
-      var date = new Date()
-      event.temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
+      var date = new Date();
+      var temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
       var selector =  {
         selector: [{
@@ -72,9 +72,6 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
         }]
       };
 
-      // Generate selector
-      self._guest.selectedShape = selector;
-
       var annotation = {
           src: self._imageAnnotator._image.src,
           shapes: [event.shape],
@@ -82,11 +79,10 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
               target: [selector]
           }
       };
-      self._annotations[event.temporaryImageID] = annotation;
+      self._annotations[temporaryImageID] = annotation;
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
-
-      self._guest.onAdderClick(event);
+      self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID);
     });
 
 
@@ -107,7 +103,7 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
             hypoAnnotations.push(hypoAnnotation);
         }
 
-        self._guest.showViewer(hypoAnnotations);
+        self._imagePlugin.showAnnotations(hypoAnnotations);
     });
 
   /**
@@ -156,9 +152,11 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
  */
 window['Annotorious'] = {};
 window['Annotorious']['ImagePlugin'] = (function() {
-  function AnnotoriousImagePlugin(element, options, imagelist) {
+  function AnnotoriousImagePlugin(element, options, imagePlugin, imagelist) {
     this._el = element;
     this.options = options;
+    this.imagePlugin = imagePlugin;
+
     this.handlers = {};
 
     this.defaultStyle = {
@@ -181,13 +179,12 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
     var self = this;
     goog.array.forEach(imagelist, function(img, idx, array) {
-      var res = new annotorious.hypo.ImagePlugin(img, self['annotator']);
+      var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin']);
       if (self.options.read_only) {
           res.disableSelection();
       }
       self.handlers[img.src] = res;
     });
-
   }
 
   AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {

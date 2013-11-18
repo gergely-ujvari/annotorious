@@ -154,11 +154,40 @@ annotorious.hypo.ImagePlugin = function(image, guest) {
 /**
  * HYPO plugin interface.
  */
-window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
-  function AnnotoriousImagePlugin(element, options) {
+window['Annotorious'] = {};
+window['Annotorious']['ImagePlugin'] = (function() {
+  function AnnotoriousImagePlugin(element, options, imagelist) {
     this._el = element;
     this.options = options;
     this.handlers = {};
+
+    this.defaultStyle = {
+        outline: '#000000',
+        hi_outline: '#000000',
+        stroke: '#ffffff',
+        hi_stroke: '#fff000',
+        fill: undefined,
+        hi_fill: undefined
+    }
+
+    this.highlightStyle = {
+        outline: '#000000',
+        hi_outline: '#000000',
+        stroke: '#fff000',
+        hi_stroke: '#ff7f00',
+        fill: undefined,
+        hi_fill: undefined
+    }
+
+    var self = this;
+    goog.array.forEach(imagelist, function(img, idx, array) {
+      var res = new annotorious.hypo.ImagePlugin(img, self['annotator']);
+      if (self.options.read_only) {
+          res.disableSelection();
+      }
+      self.handlers[img.src] = res;
+    });
+
   }
 
   AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {
@@ -356,33 +385,6 @@ window['Annotator']['Plugin']['AnnotoriousImagePlugin'] = (function() {
 
   AnnotoriousImagePlugin.prototype['pluginInit'] = function() {
     var images = this._el.getElementsByTagName('img');
-
-    this.defaultStyle = {
-        outline: '#000000',
-        hi_outline: '#000000',
-        stroke: '#ffffff',
-        hi_stroke: '#fff000',
-        fill: undefined,
-        hi_fill: undefined
-    }
-
-    this.highlightStyle = {
-        outline: '#000000',
-        hi_outline: '#000000',
-        stroke: '#fff000',
-        hi_stroke: '#ff7f00',
-        fill: undefined,
-        hi_fill: undefined
-    }
-
-    var self = this;
-    goog.array.forEach(images, function(img, idx, array) {
-      var res = new annotorious.hypo.ImagePlugin(img, self['annotator']);
-      if (self.options.read_only) {
-          res.disableSelection();
-      }
-      self.handlers[img.src] = res;
-    });
 
     // Notify us for the changes
     this['annotator'].subscribe('annotationUpdated', function(annotation) {

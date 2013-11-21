@@ -63,23 +63,11 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
       var date = new Date();
       var temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
-      var selector =  {
-        selector: [{
-            type: "ShapeSelector",
-            shapeType: event.shape.type,
-            geometry: event.shape.geometry,
-            source: self._imageAnnotator._image.src
-        }]
-      };
-
       var annotation = {
           src: self._imageAnnotator._image.src,
           shapes: [event.shape],
-          hypoAnnotation: {
-              target: [selector]
-          }
+          temporaryID: temporaryImageID
       };
-      self._annotations[temporaryImageID] = annotation;
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
       self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID);
@@ -147,10 +135,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
     });
   }
 
-
-  AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
-    var handler = this.handlers[annotation.source];
-
+  AnnotoriousImagePlugin.prototype['_createShapeForAnnotation'] = function(shape, geometry, style) {
     // Create the corresponding subshape object
     var subshape = null;
     if (shape == 'rect') {
@@ -164,7 +149,37 @@ window['Annotorious']['ImagePlugin'] = (function() {
     }
 
     // Create the shape object
-    var shape = new annotorious.shape.Shape(shape, subshape, annotorious.shape.Units.FRACTION, style);
+    return new annotorious.shape.Shape(shape, subshape, annotorious.shape.Units.FRACTION, style);
+  }
+
+  AnnotoriousImagePlugin.prototype['updateAnnotationAfterCreatingAnnotatorHighlight'] = function(annotation) {
+    var handler = this.handlers[annotation.source];
+    var viewer = handler._imageAnnotator._viewer;
+    var found = null;
+
+    // This is a newly created annotation from selection
+    for (var ann_index in viewer._annotations) {
+        var ann = viewer._annotations[ann_index];
+        if (ann.temporaryID == annotation.temporaryID) {
+            found = ann;
+
+            // Found our annotation
+            ann.text = annotation.text;
+            ann.id = annotation.id;
+            ann.temporaryID = undefined;
+            ann.source = annotation.source;
+            ann.highlight = annotation.highlight;
+
+            break;
+        }
+    }
+    return found;
+  }
+
+  AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
+    var handler = this.handlers[annotation.source];
+
+    shape = this._createShapeForAnnotation(shape, geometry, style);
     annotation.shapes = [shape];
 
     // Finally add the annotation to the image annotator

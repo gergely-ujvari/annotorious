@@ -149,6 +149,9 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
 
   AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
+    var handler = this.handlers[annotation.source];
+
+    // Create the corresponding subshape object
     var subshape = null;
     if (shape == 'rect') {
       subshape = new annotorious.shape.geom.Rectangle(
@@ -159,12 +162,43 @@ window['Annotorious']['ImagePlugin'] = (function() {
           subshape = new annotorious.shape.geom.Polygon(geometry.points);
         }
     }
+
+    // Create the shape object
     var shape = new annotorious.shape.Shape(shape, subshape, annotorious.shape.Units.FRACTION, style);
     annotation.shapes = [shape];
 
-    var handler = this.handlers[annotation.source];
+    // Finally add the annotation to the image annotator
     handler.addAnnotation(annotation);
   }
+
+  AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(annotation) {
+    this.handlers[annotation.source].deleteAnnotation(annotation);
+  }
+
+  AnnotoriousImagePlugin.prototype['drawAnnotationHighlight'] = function(annotation) {
+    // Sadly, because of canvas cleaning issues, we have to redraw all annotations in the canvas
+    var viewer = this.handlers[annotation.source]._imageAnnotator._viewer;
+    viewer._g2d.clearRect(0, 0, viewer._canvas.width, viewer._canvas.height);
+
+    for (var ann_index in viewer._annotations) {
+        var ann = viewer._annotations[ann_index];
+        // The viewer explicitly transforms the shape into a viewPort shape (FRACTION to PIXEL)
+        // and stores that shape in an inner-map, we have to use this to call draw.
+        var shape = viewer._shapes[annotorious.shape.hashCode(ann.shapes[0])];
+        viewer._draw(shape, ann.highlight.active);
+    }
+  }
+
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
+/*-------------------------------------------------------------*/
 
   AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {
     var annotation = {
@@ -189,10 +223,6 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
     var handler = this.handlers[annotation.source];
     handler.addAnnotation(annotation);
-  }
-
-  AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(annotation) {
-    this.handlers[annotation.source].deleteAnnotation(annotation);
   }
 
   AnnotoriousImagePlugin.prototype['updateAnnotation'] = function(hypoAnnotation) {

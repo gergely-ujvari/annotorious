@@ -152,6 +152,26 @@ window['Annotorious']['ImagePlugin'] = (function() {
     return new annotorious.shape.Shape(shape, subshape, annotorious.shape.Units.FRACTION, style);
   }
 
+  AnnotoriousImagePlugin.prototype['_calculateHeatmapGeometry'] = function(annotation, image) {
+    var bound = image.getBoundingClientRect();
+    var shape = annotation.shapes[0];
+    annotation.heatmapGeometry = {};
+    if (shape.type == 'rect') {
+        annotation.heatmapGeometry.y = bound.height * shape.geometry.y;
+        annotation.heatmapGeometry.h = bound.height * shape.geometry.height;
+    } else if (shape.type == 'polygon') {
+        var minY = 1;
+        var maxY = 0;
+        for (var index in shape.geometry.points) {
+            var point = shape.geometry.points[index];
+            if (point.y < minY) { minY = point.y};
+            if (point.y > maxY) { maxY = point.y};
+        }
+        annotation.heatmapGeometry.y = bound.height * minY;
+        annotation.heatmapGeometry.h = bound.height * (maxY - minY);
+    }
+  }
+
   AnnotoriousImagePlugin.prototype['updateAnnotationAfterCreatingAnnotatorHighlight'] = function(annotation) {
     var handler = this.handlers[annotation.source];
     var viewer = handler._imageAnnotator._viewer;
@@ -169,7 +189,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
             ann.temporaryID = undefined;
             ann.source = annotation.source;
             ann.highlight = annotation.highlight;
-
+            this._calculateHeatmapGeometry(ann, handler._image);
             break;
         }
     }
@@ -181,6 +201,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
     shape = this._createShapeForAnnotation(shape, geometry, style);
     annotation.shapes = [shape];
+    this._calculateHeatmapGeometry(annotation, handler._image);
 
     // Finally add the annotation to the image annotator
     handler.addAnnotation(annotation);
@@ -204,227 +225,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
     }
   }
 
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-/*-------------------------------------------------------------*/
-
-  AnnotoriousImagePlugin.prototype['addAnnotation'] = function(selector, hypoAnnotation) {
-    var annotation = {
-        text: hypoAnnotation.text,
-        id: hypoAnnotation.id,
-        hypoAnnotation: hypoAnnotation
-    };
-    annotation.source = selector.source;
-    var subshape = null;
-    if (selector.shapeType == 'rect') {
-      subshape = new annotorious.shape.geom.Rectangle(
-          selector.geometry.x, selector.geometry.y,
-          selector.geometry.width, selector.geometry.height);
-    } else {
-        if (selector.shapeType == 'polygon') {
-          subshape = new annotorious.shape.geom.Polygon(selector.geometry.points);
-        }
-    }
-    var shape = new annotorious.shape.Shape(selector.shapeType, subshape, annotorious.shape.Units.FRACTION);
-    shape.style = this.defaultStyle;
-    annotation.shapes = [shape];
-
-    var handler = this.handlers[annotation.source];
-    handler.addAnnotation(annotation);
-  }
-
-  AnnotoriousImagePlugin.prototype['updateAnnotation'] = function(hypoAnnotation) {
-    var source = hypoAnnotation.target[0].selector[0].source;
-    var handler = this.handlers[source];
-
-    var id = null;
-    if ('id' in hypoAnnotation) {
-      if ('temporaryImageID' in hypoAnnotation) {
-          id = hypoAnnotation.temporaryImageID;
-          delete hypoAnnotation.temporaryImageID;
-      } else { id = hypoAnnotation.id; }
-    } else { id = hypoAnnotation.temporaryImageID; }
-
-    handler.updateAnnotation(id, hypoAnnotation);
-  }
-
-  AnnotoriousImagePlugin.prototype['calculateHeatmapPoints'] = function(bucket_size, bucket_threshold_path, above, below, window_height) {
-    var self = this;
-    var wrapper = self['annotator'].wrapper;
-    var defaultView = wrapper[0].ownerDocument.defaultView;
-
-    var images = Array.prototype.slice.call(this._el.getElementsByTagName('img'));
-    var points = images.reduce(function(points, img, i) {
-        var bound = img.getBoundingClientRect();
-        var imagex = bound.top - wrapper.offset().top;
-        var imageh = bound.height;
-        //var imagex = $(img).offset().top - wrapper.offset().top - defaultView.pageYOffset;
-        //var imageh = $(img).outerHeight(true);
-
-        for (var id in self.handlers[img.src]._annotations) {
-            var d = self.handlers[img.src]._annotations[id].hypoAnnotation;
-            var selector = d.target[0].selector[0];
-            var annotationx = 0;
-            var annotationh = 0;
-            if (selector.shapeType == 'rect') {
-                annotationx = bound.height * selector.geometry.y;
-                annotationh = bound.height * selector.geometry.height;
-            } else if (selector.shapeType == 'polygon') {
-                var minY = 1;
-                var maxY = 0;
-                for (var index in selector.geometry.points) {
-                    var point = selector.geometry.points[index];
-                    if (point.y < minY) { minY = point.y};
-                    if (point.y > maxY) { maxY = point.y};
-                }
-                annotationx = bound.height * minY;
-                annotationh = bound.height * (maxY - minY);
-            }
-            var x = imagex + annotationx;
-            var h = annotationh;
-            if (x <= bucket_size + bucket_threshold_path) {
-                if (!(d in above)) { above.push(d); }
-            } else if (x + h >= window_height - bucket_size) {
-                if (!(d in below)) { below.push(d); }
-            } else {
-                points.push([x, 1, d]);
-                points.push([x + h, -1, d]);
-            }
-        }
-
-        return points;
-    }, []);
-
-    return points;
-  }
-
-  AnnotoriousImagePlugin.prototype['setActiveHighlights'] = function(tags, visibleHighlights) {
-    for (var image_src in this.handlers) {
-        var handler = this.handlers[image_src];
-        var handlerHasHiglight = false;
-        for (var annotation_id in handler._annotations) {
-            var annotation = handler._annotations[annotation_id];
-            var shape = annotation.shapes[0];
-
-            // viewer._draw only accepts coordinates in pixels.
-            if (shape.units == annotorious.shape.Units.FRACTION) {
-              var viewportShape = annotorious.shape.transform(shape, function(xy) {
-                return handler._imageAnnotator.fromItemCoordinates(xy);
-              });
-              shape = viewportShape;
-            }
-
-            // Draw the highlights
-            if (tags.indexOf(annotation.hypoAnnotation.$$tag) != -1) {
-                handler._imageAnnotator._viewer._draw(shape, true);
-                handlerHasHiglight = true;
-            } else {
-                handler._imageAnnotator._viewer._draw(shape, false);
-            }
-        }
-
-        if (!visibleHighlights) {
-            // Draw the higlights
-            if (handlerHasHiglight) {
-              goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
-            } else {
-              goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-focus', 'annotorious-item-unfocus');
-            }
-        }
-    }
-  }
-
-  AnnotoriousImagePlugin.prototype['collectDynamicBucket'] = function(top, bottom) {
-    var visible = []
-    for (var image_src in this.handlers) {
-        var handler = this.handlers[image_src];
-        var bound = handler._image.getBoundingClientRect();
-        var imagex = bound.top;
-        for (var annotation_id in handler._annotations) {
-            var annotation = handler._annotations[annotation_id];
-            var hypoAnnotation = annotation.hypoAnnotation;
-            var selector = hypoAnnotation.target[0].selector[0];
-
-            var annotationx = 0;
-            if (selector.shapeType == 'rect') {
-                annotationx = bound.height * selector.geometry.y;
-            }
-
-            var annotation_top = imagex + annotationx;
-            if (annotation_top >= top && annotation_top <= bottom) {
-                visible.push(hypoAnnotation);
-            }
-        }
-    }
-
-    return visible;
-  }
-
-  AnnotoriousImagePlugin.prototype['switchHighlightAll'] = function(onoff) {
-    for (var image_src in this.handlers) {
-        var handler = this.handlers[image_src];
-        for (var annotation_id in handler._annotations) {
-            var annotation = handler._annotations[annotation_id];
-            var shape = annotation.shapes[0];
-
-            // viewer._draw only accepts coordinates in pixels.
-            if (shape.units == annotorious.shape.Units.FRACTION) {
-              var viewportShape = annotorious.shape.transform(shape, function(xy) {
-                return handler._imageAnnotator.fromItemCoordinates(xy);
-              });
-              shape = viewportShape;
-            }
-
-            // Set style
-            if (onoff) {
-                shape.style = this.highlightStyle;
-                handler._imageAnnotator._viewer._shapes[annotorious.shape.hashCode(annotation.shapes[0])].style = this.highlightStyle;
-            } else  {
-                shape.style = this.defaultStyle;
-                handler._imageAnnotator._viewer._shapes[annotorious.shape.hashCode(annotation.shapes[0])].style = this.defaultStyle;
-            }
-            handler._imageAnnotator._viewer._draw(shape, false);
-
-
-        }
-    }
-  }
-
-  AnnotoriousImagePlugin.prototype['pluginInit'] = function() {
-    var images = this._el.getElementsByTagName('img');
-
-    // Notify us for the changes
-    this['annotator'].subscribe('annotationUpdated', function(annotation) {
-      if ('target' in annotation) {
-          annotation.target.forEach(function(target) {
-             if ('selector' in target && target.selector.length > 0) {
-                 if (target.selector[0].type == 'ShapeSelector') {
-                    self.updateAnnotation(annotation);
-                 }
-             }
-          });
-      }
-    });
-
-    this['annotator'].subscribe('annotationDeleted', function(annotation) {
-      if ('target' in annotation) {
-          annotation.target.forEach(function(target) {
-             if ('selector' in target && target.selector.length > 0) {
-                 if (target.selector[0].type == 'ShapeSelector') {
-                    self.deleteAnnotation(annotation);
-                 }
-             }
-          });
-      }
-    });
-
+  AnnotoriousImagePlugin.prototype['getImageForAnnotation'] = function(annotation) {
+    return this.handlers[annotation.source]._image;
   }
 
   return AnnotoriousImagePlugin;

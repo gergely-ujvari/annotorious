@@ -60,6 +60,7 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
     // Add selection handlers
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, function(event) {
       // Generate temporary id for the annotation
+      self.maybeClicked = false;
       var date = new Date();
       var temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
@@ -75,14 +76,8 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
 
 
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_CANCELED, function() {
-      if (annotorious.events.ui.hasMouse)
-        goog.style.showElement(self._imageAnnotator._editCanvas, false);
-      self._imageAnnotator._currentSelector.stopSelection();
-    });
-
-    var activeCanvas = (annotorious.events.ui.hasTouch) ? this._imageAnnotator._editCanvas : this._imageAnnotator._viewCanvas;
-    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
-        var coords = annotorious.events.ui.sanitizeCoordinates(event, activeCanvas);
+      if (self.maybeClicked) {
+        var coords = annotorious.events.ui.sanitizeCoordinates(self.clickEvent, activeCanvas);
         var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
 
         var hypoAnnotations = [];
@@ -92,6 +87,21 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
         }
 
         self._imagePlugin.showAnnotations(hypoAnnotations);
+      }
+
+      if (annotorious.events.ui.hasMouse)
+        goog.style.showElement(self._imageAnnotator._editCanvas, false);
+      self._imageAnnotator._currentSelector.stopSelection();
+    });
+
+    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_STARTED, function() {
+        self.maybeClicked = true;
+    });
+
+    var activeCanvas = (annotorious.events.ui.hasTouch) ? this._imageAnnotator._editCanvas : this._imageAnnotator._viewCanvas;
+
+    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
+        self.clickEvent = event;
     });
 
   /**

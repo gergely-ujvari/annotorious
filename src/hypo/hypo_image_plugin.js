@@ -239,6 +239,13 @@ window['Annotorious']['ImagePlugin'] = (function() {
     return this.handlers[annotation.source]._image;
   }
 
+  AnnotoriousImagePlugin.prototype['updateShapeStyle'] = function(annotation, style) {
+    var viewer = this.handlers[annotation.source]._imageAnnotator._viewer;
+    var shape = viewer._shapes[annotorious.shape.hashCode(annotation.shapes[0])];
+    annotation.shapes[0].style = style;
+    shape.style = style;
+  }
+
   return AnnotoriousImagePlugin;
 })();
 

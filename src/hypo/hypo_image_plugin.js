@@ -221,18 +221,24 @@ window['Annotorious']['ImagePlugin'] = (function() {
     this.handlers[annotation.source].deleteAnnotation(annotation);
   }
 
-  AnnotoriousImagePlugin.prototype['drawAnnotationHighlight'] = function(annotation) {
+  AnnotoriousImagePlugin.prototype['drawAnnotationHighlight'] = function(annotation, visibleHighlights) {
     // Sadly, because of canvas cleaning issues, we have to redraw all annotations in the canvas
     var viewer = this.handlers[annotation.source]._imageAnnotator._viewer;
     viewer._g2d.clearRect(0, 0, viewer._canvas.width, viewer._canvas.height);
 
+    this.addRemoveImageFocus(annotation.source, true);
+    var drawn = false;
     for (var ann_index in viewer._annotations) {
         var ann = viewer._annotations[ann_index];
-        // The viewer explicitly transforms the shape into a viewPort shape (FRACTION to PIXEL)
-        // and stores that shape in an inner-map, we have to use this to call draw.
-        var shape = viewer._shapes[annotorious.shape.hashCode(ann.shapes[0])];
-        viewer._draw(shape, ann.highlight.active);
+        if (ann.highlight.active || visibleHighlights) {
+            // The viewer explicitly transforms the shape into a viewPort shape (FRACTION to PIXEL)
+            // and stores that shape in an inner-map, we have to use this to call draw.
+            var shape = viewer._shapes[annotorious.shape.hashCode(ann.shapes[0])];
+            viewer._draw(shape, ann.highlight.active);
+            drawn = true;
+        }
     }
+    if (!drawn) this.addRemoveImageFocus(annotation.source, false);
   }
 
   AnnotoriousImagePlugin.prototype['getImageForAnnotation'] = function(annotation) {
@@ -244,6 +250,15 @@ window['Annotorious']['ImagePlugin'] = (function() {
     var shape = viewer._shapes[annotorious.shape.hashCode(annotation.shapes[0])];
     annotation.shapes[0].style = style;
     shape.style = style;
+  }
+
+  AnnotoriousImagePlugin.prototype['addRemoveImageFocus'] = function(imageSource, focus) {
+    var handler = this.handlers[imageSource];
+    if (focus) {
+      goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
+    } else {
+      goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-focus', 'annotorious-item-unfocus');
+    }
   }
 
   return AnnotoriousImagePlugin;

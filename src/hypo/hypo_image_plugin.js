@@ -221,12 +221,12 @@ window['Annotorious']['ImagePlugin'] = (function() {
     this.handlers[annotation.source].deleteAnnotation(annotation);
   }
 
-  AnnotoriousImagePlugin.prototype['drawAnnotationHighlight'] = function(annotation, visibleHighlights) {
+  AnnotoriousImagePlugin.prototype['drawAnnotationHighlights'] = function(source, visibleHighlights) {
     // Sadly, because of canvas cleaning issues, we have to redraw all annotations in the canvas
-    var viewer = this.handlers[annotation.source]._imageAnnotator._viewer;
+    var viewer = this.handlers[source]._imageAnnotator._viewer;
     viewer._g2d.clearRect(0, 0, viewer._canvas.width, viewer._canvas.height);
 
-    this.addRemoveImageFocus(annotation.source, true);
+    this.addRemoveImageFocus(source, true);
     var drawn = false;
     for (var ann_index in viewer._annotations) {
         var ann = viewer._annotations[ann_index];
@@ -238,7 +238,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
             drawn = true;
         }
     }
-    if (!drawn) this.addRemoveImageFocus(annotation.source, false);
+    if (!drawn) this.addRemoveImageFocus(source, false);
   }
 
   AnnotoriousImagePlugin.prototype['getImageForAnnotation'] = function(annotation) {

@@ -65,13 +65,13 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
       var temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
       var annotation = {
-          src: self._imageAnnotator._image.src,
+          source: self._imageAnnotator._image.src,
           shapes: [event.shape],
           temporaryID: temporaryImageID
       };
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
-      self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID);
+      self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
     });
 
 

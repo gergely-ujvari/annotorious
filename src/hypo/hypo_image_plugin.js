@@ -31,7 +31,7 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
     this._imagePlugin = imagePlugin;
     this._annotations = {};
 
-    // Initialize imageAnnotor with our custom Popup
+    // Initialize imageAnnotator with our custom Popup
     this._popup = new annotorious.hypo.Popup(image, this._imagePlugin, this._eventBroker);
     this._imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(image, this._popup);
     this._popup.addAnnotator(this._imageAnnotator);

@@ -137,11 +137,17 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
     var self = this;
     goog.array.forEach(imagelist, function(img, idx, array) {
-      var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin']);
-      if (self.options.read_only) {
-          res.disableSelection();
+      var setupFunction = function() {
+          var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin']);
+          if (self.options.read_only) {
+              res.disableSelection();
+          }
+          self.handlers[img.src] = res;
       }
-      self.handlers[img.src] = res;
+
+      // We cannot be sure if the image is already loaded or not.
+      if (img.complete) setupFunction();
+      else img.addEventListener('load', setupFunction);
     });
   }
 

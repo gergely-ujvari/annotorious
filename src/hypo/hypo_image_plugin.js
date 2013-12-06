@@ -25,14 +25,15 @@ if (!window['annotorious']['plugin'])
  * @param {Object} Annotator.Plugin.ImageAnchors reference
  * @constructor
  */
-annotorious.hypo.ImagePlugin = function(image, imagePlugin) {
+annotorious.hypo.ImagePlugin = function(image, imagePlugin, wrapperElement) {
     this._image = image;
     this._eventBroker = new annotorious.events.EventBroker();
     this._imagePlugin = imagePlugin;
     this._annotations = {};
+    this._wrapperElement = wrapperElement;
 
     // Initialize imageAnnotator with our custom Popup
-    this._popup = new annotorious.hypo.Popup(image, this._imagePlugin, this._eventBroker);
+    this._popup = new annotorious.hypo.Popup(image,  this._eventBroker, this._wrapperElement);
     this._imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(image, this._popup);
     this._popup.addAnnotator(this._imageAnnotator);
 
@@ -138,7 +139,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
     var self = this;
     goog.array.forEach(imagelist, function(img, idx, array) {
       var setupFunction = function() {
-          var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin']);
+          var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin'], self['_el']);
           if (self.options.read_only) {
               res.disableSelection();
           }

@@ -13,6 +13,7 @@
     "src/mediatypes/image/image.viewer.js",
     "src/hypo/hypo_popup.js",
     "src/hypo/hypo_image_plugin.js",
+    "src/hypo/templates/annotator_elements.soy",
     "src/selection/rect_drag_selector.js",
     "src/annotation.js",
     "src/dom.js",

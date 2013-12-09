@@ -31,6 +31,7 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin, wrapperElement) {
     this._imagePlugin = imagePlugin;
     this._annotations = {};
     this._wrapperElement = wrapperElement;
+    this._annotationsUnderthePointer = [];
 
     // Initialize imageAnnotator with our custom Popup
     this._popup = new annotorious.hypo.Popup(image,  this._eventBroker, this._wrapperElement);
@@ -70,6 +71,7 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin, wrapperElement) {
           shapes: [event.shape],
           temporaryID: temporaryImageID
       };
+
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
       self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
@@ -103,6 +105,27 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin, wrapperElement) {
 
     goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
         self.clickEvent = event;
+    });
+
+    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.MOVE, function(event) {
+        var coords = annotorious.events.ui.sanitizeCoordinates(event, activeCanvas);
+        var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
+
+        var hypoAnnotations = [];
+        for (var index in annotations) {
+            var hypoAnnotation = annotations[index].highlight.annotation;
+            hypoAnnotations.push(hypoAnnotation);
+        }
+
+        // These are the annotations that has "mouseout"
+        var restAnnotations = self._annotationsUnderthePointer.filter(function(ann) {
+            return annotations.indexOf(ann) == -1;
+        });
+
+        self._imagePlugin.mouseOverAnnotations(hypoAnnotations);
+        self._imagePlugin.mouseOutAnnotations(restAnnotations);
+
+        self._annotationsUnderthePointer = annotations;
     });
 
   /**

@@ -158,21 +158,54 @@ window['Annotorious']['ImagePlugin'] = (function() {
     this.imagePlugin = imagePlugin;
 
     this.handlers = {};
+    this._temporalAnnotations = {};
 
     var self = this;
     goog.array.forEach(imagelist, function(img, idx, array) {
+        self.addImage(img);
+    });
+  }
+
+  AnnotoriousImagePlugin.prototype['addImage'] = function(newImage) {
+      var self = this;
       var setupFunction = function() {
-          var res = new annotorious.hypo.ImagePlugin(img, self['imagePlugin'], self['_el']);
+          var res = new annotorious.hypo.ImagePlugin(newImage, self['imagePlugin'], self['_el']);
           if (self.options.read_only) {
-              res.disableSelection();
+            res.disableSelection();
           }
-          self.handlers[img.src] = res;
+          self.handlers[newImage.src] = res;
+          if (self._temporalAnnotations[newImage.src]) {
+            self._temporalAnnotations[newImage.src].forEach(function(ann) {
+                self._addAnnotationFromHighlight(ann.annotation, ann.image, ann.shape, ann.geometry, ann.style);
+            });
+
+            self._temporalAnnotations[newImage.src] = [];
+          }
       }
 
       // We cannot be sure if the image is already loaded or not.
-      if (img.complete) setupFunction();
-      else img.addEventListener('load', setupFunction);
-    });
+      if (newImage.complete) setupFunction();
+      else newImage.addEventListener('load', setupFunction);
+  }
+
+  AnnotoriousImagePlugin.prototype['getHighlightsForImage'] = function(image) {
+    var highlights = [];
+    var handler = this.handlers[image.src];
+    if (handler) {
+        for (var index in handler._imageAnnotator._viewer._annotations) {
+            var ann = handler._imageAnnotator._viewer._annotations[index];
+            highlights.push(ann.highlight);
+        }
+    }
+
+    return highlights;
+  }
+
+  AnnotoriousImagePlugin.prototype['removeImage'] = function(image) {
+    var handler = this.handlers[image.src];
+    if (handler) {
+        delete this.handlers[image.src];
+    }
   }
 
   AnnotoriousImagePlugin.prototype['_createShapeForAnnotation'] = function(shape, geometry, style) {
@@ -235,8 +268,31 @@ window['Annotorious']['ImagePlugin'] = (function() {
     }
     return found;
   }
-
   AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
+    var handler = this.handlers[annotation.source];
+    if (handler) {
+      this._addAnnotationFromHighlight(annotation, image, shape, geometry, style);
+    } else {
+      // We handler is not ready yet, save it for later
+      this._saveAnnotationTemporarily(annotation, image, shape, geometry, style);
+    }
+  }
+
+  AnnotoriousImagePlugin.prototype['_saveAnnotationTemporarily'] = function(annotation, image, shape, geometry, style) {
+    if (!this._temporalAnnotations[annotation.source]) {
+       this._temporalAnnotations[annotation.source] = [];
+    }
+
+    this._temporalAnnotations[annotation.source].push({
+        annotation: annotation,
+        image: image,
+        shape: shape,
+        geometry: geometry,
+        style: style
+    });
+  }
+
+  AnnotoriousImagePlugin.prototype['_addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
     var handler = this.handlers[annotation.source];
 
     shape = this._createShapeForAnnotation(shape, geometry, style);

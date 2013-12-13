@@ -266,6 +266,11 @@ window['Annotorious']['ImagePlugin'] = (function() {
             break;
         }
     }
+
+    if (!found) {
+        found = annotation;
+        found._bad = true;
+    }
     return found;
   }
   AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {

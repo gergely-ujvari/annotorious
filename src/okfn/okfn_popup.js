@@ -1,123 +1,80 @@
-// var humanEvents = annotorious.events.ui.EventType;
-
 goog.provide('annotorious.okfn.Popup');
 
-goog.require('goog.array');
-goog.require('goog.style');
-goog.require('goog.dom.classes');
-
 /**
- * A wrapper around the OKFN viewer popup, mimicking the Annotorious Popup.
+ * A wrapper around the viewer popup, mimicking the Annotorious Popup.
  * @param {element} image the image
  * @param {annotorious.events.EventBroker} eventBroker reference to the Yuma EventBroker
- * @param {Annotator} okfnAnnotator reference to the OKFN Annotator
- * @param {Object} the base offset of the annotatable DOM element
+ * @param {element} Annotator's wrapperelement
  * @constructor
  */
-annotorious.okfn.Popup = function(image, okfnAnnotator, eventBroker, baseOffset) {  
+annotorious.okfn.Popup = function(image, eventBroker, wrapperElement) {
+  this.element = goog.soy.renderAsElement(annotorious.templates.annotator.popup);
+
+  /** @private **/
+  this._text = goog.dom.query('.annotorious-popup-text', this.element)[0];
+
   /** @private **/
   this._image = image;
 
-  /** @private **/ 
-  this._okfnAnnotator = okfnAnnotator;
-
   /** @private **/
   this._eventBroker = eventBroker;
-  
-  /** @private **/
-  this._baseOffset = baseOffset;
 
   /** @private **/
-  this._popupHideTimer;
+  this._wrapperElement = wrapperElement;
 
   /** @private **/
-  this._cancelHide = false;
-
-  /** @private **/
-  this._mouseoverHandlers = [];
-
-  /** @private **/
-  this._mouseoutHandlers = [];
+  this._annotator = null;
 
   var self = this;
-  goog.events.listen(this._okfnAnnotator.viewer.element[0], humanEvents.OVER, function(event) {
-    if (self.isViewerCurrentlyOwned()) {
-      self.clearHideTimer()
-      goog.array.forEach(self._mouseoverHandlers, function(handler) {
-        handler(event);
-      });
-    }
-  });
-  
-  goog.events.listen(this._okfnAnnotator.viewer.element[0], humanEvents.OUT, function(event) {
-    if (self.isViewerCurrentlyOwned()) {
-      okfnAnnotator.clearViewerHideTimer(); // Switch off Annotator's own fade out
+
+  if (annotorious.events.ui.hasMouse) {
+    goog.events.listen(this.element, goog.events.EventType.MOUSEOVER, function(event) {
+      self.clearHideTimer();
+    });
+
+    goog.events.listen(this.element, goog.events.EventType.MOUSEOUT, function(event) {
       self.startHideTimer();
-      goog.array.forEach(self._mouseoutHandlers, function(handler) {
-        handler(event);
-      });
-    }
-  });
+    });
+
+  }
+
+  goog.style.setOpacity(this.element, 0);
+  goog.style.setStyle(this.element, 'pointer-events', 'none');
 }
 
 /**
- * Utility method that tests if the viewer is currently 'owned' by the image that this
- * popup wrapper is responsible for. I.e. whether the (first) current annotation in the 
- * viewer is an image annotation, and the annotation 'url' property matches this wrapper's
- * _image.src.
- * @returns {boolean} true if the viewer is currently owned by this wrapper
+ * Show the popup, loaded with the specified annotation, at the specified coordinates.
+ * @param {annotorious.Annotation} annotation the annotation
+ * @param {annotorious.shape.geom.Point} xy the viewport coordinate
  */
-annotorious.okfn.Popup.prototype.isViewerCurrentlyOwned = function() {
-  var annotations = this._okfnAnnotator.viewer.annotations;
+annotorious.okfn.Popup.prototype.show = function(annotation, xy) {
+  this.clearHideTimer();
 
-  if (!annotations) 
-    return false;
+  if (xy)
+    this.setPosition(xy);
 
-  if (annotations.length < 1)
-    return false;
+  if (annotation)
+    this.setAnnotation(annotation);
 
-  return annotations[0].src == this._image.src;
-}
-
-/**
- * Adds a mouseover event handler to this popup wrapper. Note that this handler 
- * will _not_ be invoked on all mouseover events that happen on the underlying
- * Annotator popup, but _only_ on events that happen while the Annotator popup
- * is "owned" by this wrapper. (I.e. when the popup contains an annotation that 
- * belongs to the same image as this popup wrapper.) 
- */
-annotorious.okfn.Popup.prototype.addMouseOverHandler = function(handler) {
-  this._mouseoverHandlers.push(handler);
-}
-
-/**
- * Adds a mouseout event handler to this popup wrapper. Note that this handler 
- * will _not_ be invoked on all mouseout events that happen on the underlying
- * Annotator popup, but _only_ on events that happen while the Annotator popup
- * is "owned" by this wrapper. (I.e. when the popup contains an annotation that 
- * belongs to the same image as this popup wrapper.) 
- */
-annotorious.okfn.Popup.prototype.addMouseOutHandler = function(handler) {
-  this._mouseoutHandlers.push(handler);
+  goog.style.setOpacity(this.element, 0.9);
+  goog.style.setStyle(this.element, 'pointer-events', 'auto');
 }
 
 /**
  * Start the popup hide timer.
  */
 annotorious.okfn.Popup.prototype.startHideTimer = function() {
-  if (!goog.dom.classes.has(this._okfnAnnotator.viewer.element[0], 'annotator-hide')) {
-    this._cancelHide = false;
-    if (!this._popupHideTimer) {
-      var self = this;
-      this._popupHideTimer = window.setTimeout(function() {
-        self._eventBroker.fireEvent(annotorious.events.EventType.BEFORE_POPUP_HIDE);
-        if (!self._cancelHide && self.isViewerCurrentlyOwned()) {
-          goog.dom.classes.add(self._okfnAnnotator.viewer.element[0], 'annotator-hide');
-          self._okfnAnnotator.viewer.annotations = [];
-          delete self._popupHideTimer;
-        }
-      }, 300);
-    }
+  this._cancelHide = false;
+  if (!this._popupHideTimer) {
+    var self = this;
+    this._popupHideTimer = window.setTimeout(function() {
+      self._annotator.fireEvent(annotorious.events.EventType.BEFORE_POPUP_HIDE, self);
+      if (!self._cancelHide) {
+        goog.style.setOpacity(self.element, 0.0);
+        goog.style.setStyle(self.element, 'pointer-events', 'none');
+        delete self._popupHideTimer;
+      }
+    }, 150);
   }
 }
 
@@ -132,29 +89,40 @@ annotorious.okfn.Popup.prototype.clearHideTimer = function() {
   }
 }
 
+
 /**
- * Show the popup, loaded with the specified annotation, at the specified coordinates.
- * @param {Object} annotation the annotation
- * @param {annotorious.geom.Point} xy the viewport coordinate (relative to the image)
+ * Add annotator reference
  */
-annotorious.okfn.Popup.prototype.show = function(annotation, xy) {
-  goog.dom.classes.remove(this._okfnAnnotator.viewer.element[0], 'annotator-hide');
-
-  var imgOffset = annotorious.dom.getOffset(this._image); 
-
-  goog.style.setPosition(this._okfnAnnotator.viewer.element[0], 0, window.pageYOffset - this._baseOffset.top);
-  this._okfnAnnotator.viewer.load([annotation]);   
-  goog.style.setPosition(this._okfnAnnotator.viewer.element[0],
-			 imgOffset.left - this._baseOffset.left + xy.x + 16,
-			 imgOffset.top + window.pageYOffset - this._baseOffset.top + xy.y);
-  this.clearHideTimer();
+annotorious.okfn.Popup.prototype.addAnnotator = function(annotator) {
+    this._annotator = annotator;
+    if (this._wrapperElement) goog.dom.appendChild(this._wrapperElement, this.element);
+    else goog.dom.appendChild(this._annotator.element, this.element);
+    var self = this;
+    this._annotator.addHandler(annotorious.events.EventType.MOUSE_OUT_OF_ANNOTATABLE_ITEM, function(event) {
+      self.startHideTimer();
+    });
 }
+
 
 /**
  * Set the position of the popup.
- * @param {number} x the viewport X coordinate (relative to the image)
- * @param {number} y the viewport Y coordinate (relative to the image)
+ * @param {annotorious.shape.geom.Point} xy the viewport coordinate
  */
-annotorious.okfn.Popup.prototype.setPosition = function(x, y) {
-  goog.style.setPosition(this._okfnAnnotator.viewer.element[0], x, y);  
+annotorious.okfn.Popup.prototype.setPosition = function(xy) {
+  var offset = this._image.getBoundingClientRect();
+  goog.style.setPosition(this.element, new goog.math.Coordinate(offset.left + xy.x, offset.top + xy.y));
 }
+
+
+/**
+ * Set the annotation for the popup.
+ * @param {annotorious.Annotation} annotation the annotation
+ */
+annotorious.okfn.Popup.prototype.setAnnotation = function(annotation) {
+  this._currentAnnotation = annotation;
+  if (annotation.text)
+    this._text.innerHTML = annotation.text.replace(/\n/g, '<br/>');
+  else
+    this._text.innerHTML = '<span class="annotorious-popup-empty">No comment</span>';
+}
+

@@ -112,10 +112,10 @@ annotorious.hypo.ImagePlugin = function(image, imagePlugin, wrapperElement) {
         var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
 
         var hypoAnnotations = [];
-        for (var index in annotations) {
-            var hypoAnnotation = annotations[index].highlight.annotation;
+        annotations.forEach(function(annotation) {
+            var hypoAnnotation = annotation.highlight.annotation;
             hypoAnnotations.push(hypoAnnotation);
-        }
+        });
 
         // These are the annotations that has "mouseout"
         var restAnnotations = self._annotationsUnderthePointer.filter(function(ann) {
@@ -319,8 +319,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
     this.addRemoveImageFocus(source, true);
     var drawn = false;
-    for (var ann_index in viewer._annotations) {
-        var ann = viewer._annotations[ann_index];
+
+    viewer._annotations.forEach(function(ann) {
         if (ann.highlight.active || visibleHighlights) {
             // The viewer explicitly transforms the shape into a viewPort shape (FRACTION to PIXEL)
             // and stores that shape in an inner-map, we have to use this to call draw.
@@ -328,7 +328,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
             viewer._draw(shape, ann.highlight.active);
             drawn = true;
         }
-    }
+    });
     if (!drawn) this.addRemoveImageFocus(source, false);
   }
 

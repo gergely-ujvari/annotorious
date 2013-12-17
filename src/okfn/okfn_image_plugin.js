@@ -37,6 +37,9 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
     this._popup = new annotorious.okfn.Popup(image,  this._eventBroker, this._wrapperElement);
     this._imageAnnotator = new annotorious.mediatypes.image.ImageAnnotator(image, this._popup);
     this._popup.addAnnotator(this._imageAnnotator);
+    this._imageAnnotator._hint.destroy();
+    this._hint = new annotorious.okfn.Hint(this._imageAnnotator, wrapperElement);
+    this._imageAnnotator._hint = this._hint;
 
     /*
     // Add polygon selector to imageAnnotator
@@ -60,7 +63,7 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
     this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_CANCELED, cancelHandler);
 
     // Add selection handlers
-    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, function(event) {
+    this._newSelectionHandler = function(event) {
       // Generate temporary id for the annotation
       self.maybeClicked = false;
       var date = new Date();
@@ -75,10 +78,10 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
       self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
-    });
+    }
+    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, this._newSelectionHandler);
 
-
-    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_CANCELED, function() {
+    this._newCancelHandler = function() {
       if (self.maybeClicked) {
         var coords = annotorious.events.ui.sanitizeCoordinates(self.clickEvent, activeCanvas);
         var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
@@ -95,19 +98,21 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
       if (annotorious.events.ui.hasMouse)
         goog.style.showElement(self._imageAnnotator._editCanvas, false);
       self._imageAnnotator._currentSelector.stopSelection();
-    });
+    }
+    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_CANCELED, this._newCancelHandler);
 
-    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_STARTED, function() {
+    this._newSelectionStartedHandler = function() {
         self.maybeClicked = true;
-    });
+    }
+    this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_STARTED, this._newSelectionStartedHandler);
 
     var activeCanvas = (annotorious.events.ui.hasTouch) ? this._imageAnnotator._editCanvas : this._imageAnnotator._viewCanvas;
 
-    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
+    this._eventDownListener = goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
         self.clickEvent = event;
     });
 
-    goog.events.listen(activeCanvas, annotorious.events.ui.EventType.MOVE, function(event) {
+    this._eventMoveListener =goog.events.listen(activeCanvas, annotorious.events.ui.EventType.MOVE, function(event) {
         var coords = annotorious.events.ui.sanitizeCoordinates(event, activeCanvas);
         var annotations = self._imageAnnotator.getAnnotationsAt(coords.x, coords.y);
 
@@ -143,7 +148,18 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
   annotorious.okfn.ImagePlugin.prototype.disableSelection = function() {
       this._imageAnnotator._selectionEnabled = false;
       this._imageAnnotator._hint = null;
-      //ToDo: remove Click and drag to Annotate label
+  }
+
+  annotorious.okfn.ImagePlugin.prototype.destroy = function() {
+      goog.events.unlistenByKey(this._eventDownListener);
+      goog.events.unlistenByKey(this._eventMoveListener);
+
+      this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_COMPLETED, this._newSelectionHandler);
+      this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_STARTED, this._newSelectionStartedHandler);
+      this._imageAnnotator._eventBroker.removeHandler(annotorious.events.EventType.SELECTION_CANCELED, this._newCancelHandler);
+
+      this._imageAnnotator._hint.destroy();
+      this._imageAnnotator.destroy();
   }
 }
 
@@ -204,6 +220,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
   AnnotoriousImagePlugin.prototype['removeImage'] = function(image) {
     var handler = this.handlers[image.src];
     if (handler) {
+        handler.destroy();
         delete this.handlers[image.src];
     }
   }

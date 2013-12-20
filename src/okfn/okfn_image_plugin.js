@@ -25,8 +25,9 @@ if (!window['annotorious']['plugin'])
  * @param {Object} Annotator.Plugin.ImageAnchors reference
  * @constructor
  */
-annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
+annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElement) {
     this._image = image;
+    this._index = index;
     this._eventBroker = new annotorious.events.EventBroker();
     this._imagePlugin = imagePlugin;
     this._annotations = {};
@@ -77,7 +78,7 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
 
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
-      self._imagePlugin.annotate(self._imageAnnotator._image.src, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
+      self._imagePlugin.annotate(self._imageAnnotator._image, self._index, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
     }
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, this._newSelectionHandler);
 
@@ -168,7 +169,7 @@ annotorious.okfn.ImagePlugin = function(image, imagePlugin, wrapperElement) {
  */
 window['Annotorious'] = {};
 window['Annotorious']['ImagePlugin'] = (function() {
-  function AnnotoriousImagePlugin(element, options, imagePlugin, imagelist) {
+  function AnnotoriousImagePlugin(element, options, imagePlugin) {
     this._el = element;
     this.options = options;
     this.imagePlugin = imagePlugin;
@@ -177,25 +178,22 @@ window['Annotorious']['ImagePlugin'] = (function() {
     this._temporalAnnotations = {};
 
     var self = this;
-    goog.array.forEach(imagelist, function(img, idx, array) {
-        self.addImage(img);
-    });
   }
 
-  AnnotoriousImagePlugin.prototype['addImage'] = function(newImage) {
+  AnnotoriousImagePlugin.prototype['addImage'] = function(newImage, index) {
       var self = this;
       var setupFunction = function() {
-          var res = new annotorious.okfn.ImagePlugin(newImage, self['imagePlugin'], self['_el']);
+          var res = new annotorious.okfn.ImagePlugin(newImage, index, self['imagePlugin'], self['_el']);
           if (self.options.read_only) {
             res.disableSelection();
           }
-          self.handlers[newImage.src] = res;
-          if (self._temporalAnnotations[newImage.src]) {
-            self._temporalAnnotations[newImage.src].forEach(function(ann) {
-                self._addAnnotationFromHighlight(ann.annotation, ann.image, ann.shape, ann.geometry, ann.style);
+          self.handlers[newImage] = res;
+          if (self._temporalAnnotations[newImage]) {
+            self._temporalAnnotations[newImage].forEach(function(ann) {
+                 self._addAnnotationFromHighlight(ann.annotation, ann.image, ann.shape, ann.geometry, ann.style);
             });
 
-            self._temporalAnnotations[newImage.src] = [];
+            self._temporalAnnotations[newImage] = [];
           }
       }
 
@@ -206,22 +204,21 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
   AnnotoriousImagePlugin.prototype['getHighlightsForImage'] = function(image) {
     var highlights = [];
-    var handler = this.handlers[image.src];
+    var handler = this.handlers[image];
     if (handler) {
-        for (var index in handler._imageAnnotator._viewer._annotations) {
-            var ann = handler._imageAnnotator._viewer._annotations[index];
+        handler._imageAnnotator._viewer._annotations.forEach(function(ann) {
             highlights.push(ann.highlight);
-        }
+        })
     }
 
     return highlights;
   }
 
   AnnotoriousImagePlugin.prototype['removeImage'] = function(image) {
-    var handler = this.handlers[image.src];
+    var handler = this.handlers[image];
     if (handler) {
         handler.destroy();
-        delete this.handlers[image.src];
+        delete this.handlers[image];
     }
   }
 
@@ -262,8 +259,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
     }
   }
 
-  AnnotoriousImagePlugin.prototype['updateAnnotationAfterCreatingAnnotatorHighlight'] = function(annotation) {
-    var handler = this.handlers[annotation.source];
+  AnnotoriousImagePlugin.prototype['updateAnnotationAfterCreatingAnnotatorHighlight'] = function(annotation, image) {
+    var handler = this.handlers[image];
     var viewer = handler._imageAnnotator._viewer;
     var found = null;
 
@@ -279,7 +276,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
             ann.temporaryID = undefined;
             ann.source = annotation.source;
             ann.highlight = annotation.highlight;
-            this._calculateHeatmapGeometry(ann, handler._image);
+            this._calculateHeatmapGeometry(ann, image);
             break;
         }
     }
@@ -291,7 +288,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
     return found;
   }
   AnnotoriousImagePlugin.prototype['addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
-    var handler = this.handlers[annotation.source];
+    var handler = this.handlers[image];
     if (handler) {
       this._addAnnotationFromHighlight(annotation, image, shape, geometry, style);
     } else {
@@ -301,11 +298,11 @@ window['Annotorious']['ImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['_saveAnnotationTemporarily'] = function(annotation, image, shape, geometry, style) {
-    if (!this._temporalAnnotations[annotation.source]) {
-       this._temporalAnnotations[annotation.source] = [];
+    if (!this._temporalAnnotations[image]) {
+       this._temporalAnnotations[image] = [];
     }
 
-    this._temporalAnnotations[annotation.source].push({
+    this._temporalAnnotations[image].push({
         annotation: annotation,
         image: image,
         shape: shape,
@@ -315,7 +312,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['_addAnnotationFromHighlight'] = function(annotation, image, shape, geometry, style) {
-    var handler = this.handlers[annotation.source];
+    var handler = this.handlers[image];
 
     shape = this._createShapeForAnnotation(shape, geometry, style);
     annotation.shapes = [shape];
@@ -326,15 +323,15 @@ window['Annotorious']['ImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(annotation) {
-    this.handlers[annotation.source].deleteAnnotation(annotation);
+    this.handlers[annotation.image].deleteAnnotation(annotation);
   }
 
-  AnnotoriousImagePlugin.prototype['drawAnnotationHighlights'] = function(source, visibleHighlights) {
+  AnnotoriousImagePlugin.prototype['drawAnnotationHighlights'] = function(image, visibleHighlights) {
     // Sadly, because of canvas cleaning issues, we have to redraw all annotations in the canvas
-    var viewer = this.handlers[source]._imageAnnotator._viewer;
+    var viewer = this.handlers[image]._imageAnnotator._viewer;
     viewer._g2d.clearRect(0, 0, viewer._canvas.width, viewer._canvas.height);
 
-    this.addRemoveImageFocus(source, true);
+    this.addRemoveImageFocus(image, true);
     var drawn = false;
 
     viewer._annotations.forEach(function(ann) {
@@ -346,22 +343,18 @@ window['Annotorious']['ImagePlugin'] = (function() {
             drawn = true;
         }
     });
-    if (!drawn) this.addRemoveImageFocus(source, false);
+    if (!drawn) this.addRemoveImageFocus(image, false);
   }
 
-  AnnotoriousImagePlugin.prototype['getImageForAnnotation'] = function(annotation) {
-    return this.handlers[annotation.source]._image;
-  }
-
-  AnnotoriousImagePlugin.prototype['updateShapeStyle'] = function(annotation, style) {
-    var viewer = this.handlers[annotation.source]._imageAnnotator._viewer;
+  AnnotoriousImagePlugin.prototype['updateShapeStyle'] = function(image, annotation, style) {
+    var viewer = this.handlers[image]._imageAnnotator._viewer;
     var shape = viewer._shapes[annotorious.shape.hashCode(annotation.shapes[0])];
     annotation.shapes[0].style = style;
     shape.style = style;
   }
 
-  AnnotoriousImagePlugin.prototype['addRemoveImageFocus'] = function(imageSource, focus) {
-    var handler = this.handlers[imageSource];
+  AnnotoriousImagePlugin.prototype['addRemoveImageFocus'] = function(image, focus) {
+    var handler = this.handlers[image];
     if (focus) {
       goog.dom.classes.addRemove(handler._imageAnnotator._viewCanvas, 'annotorious-item-unfocus', 'annotorious-item-focus');
     } else {

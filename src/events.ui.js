@@ -37,7 +37,7 @@ annotorious.events.ui.sanitizeCoordinates = function(event, parent) {
   var points = false;
   var offset = annotorious.dom.getOffset;
   
-  if (!event.offsetX || !event.offsetY && event.event_.changedTouches) {
+  if ((!event.offsetX || !event.offsetY) && event.event_.changedTouches) {
     points = {
       x: event.event_.changedTouches[0].clientX - offset(parent).left,
       y: event.event_.changedTouches[0].clientY - offset(parent).top

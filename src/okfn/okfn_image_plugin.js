@@ -71,9 +71,9 @@ annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElemen
       var temporaryImageID = self._imageAnnotator._image.src + '#' + date.toString();
 
       var annotation = {
-          source: self._imageAnnotator._image.src,
           shapes: [event.shape],
-          temporaryID: temporaryImageID
+          temporaryID: temporaryImageID,
+          image: self._imageAnnotator._image
       };
 
       self._imageAnnotator.addAnnotation(annotation);

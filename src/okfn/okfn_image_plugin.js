@@ -181,10 +181,32 @@ window['Annotorious']['ImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['addImage'] = function(newImage, index) {
-
       var self = this;
       var setupFunction = function(newImage, index, handlers) {
+          // Checking if the image should be filtered.
+          // Must do it here, because we need the picture to be already rendered
+
+          var style = newImage.style;
+          // If user selection is disabled then no need to create imagePlugin for that images
+          if (  (style['-moz-user-select'] && style['-moz-user-select'] == 'none')
+             || (style['-webkit-user-select'] && style['-webkit-user-select'] == 'none')
+             || (style['-ms-user-select'] && style['-ms-user-select'] == 'none')) {
+              self.imagePlugin._removeImage(newImage);
+              return
+          }
+
+          // Filtering for minimum image height or/and minimum image width
+          if (self.options.minHeight || self.options.minWidth) {
+            var bound = newImage.getBoundingClientRect();
+            if (  (self.options.minHeight && bound.height < self.options.minHeight)
+               || (self.options.minWidth && bound.width < self.options.minWidth)) {
+               self.imagePlugin._removeImage(newImage);
+               return;
+            }
+          }
+
           var res = new annotorious.okfn.ImagePlugin(newImage, index, self['imagePlugin'], self['_el']);
+
           if (self.options.read_only) {
             res.disableSelection();
           }
@@ -218,6 +240,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
   }
 
   AnnotoriousImagePlugin.prototype['removeImage'] = function(image, index) {
+    if (!this.handlers[image.src]) return;
+
     var handler = this.handlers[image.src][index];
     if (handler) {
         handler.destroy();

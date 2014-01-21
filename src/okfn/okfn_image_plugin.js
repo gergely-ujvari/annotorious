@@ -290,6 +290,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
     var handler = this.handlers[image.src][index];
     var viewer = handler._imageAnnotator._viewer;
     var found = null;
+    var self = this;
 
     // This is a newly created annotation from selection
     viewer._annotations.forEach(function(ann) {
@@ -303,7 +304,7 @@ window['Annotorious']['ImagePlugin'] = (function() {
             ann.source = annotation.source;
             ann.highlight = annotation.highlight;
             ann.handler = annotation.handler;
-            this._calculateHeatmapGeometry(ann, annotation.image);
+            self._calculateHeatmapGeometry(ann, annotation.image);
         }
     });
 

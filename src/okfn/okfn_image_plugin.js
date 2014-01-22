@@ -353,8 +353,13 @@ window['Annotorious']['ImagePlugin'] = (function() {
     annotation.handler = handler;
   }
 
-  AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(annotation) {
-    annotation.handler.deleteAnnotation(annotation);
+  AnnotoriousImagePlugin.prototype['deleteAnnotation'] = function(annotation, image, index) {
+    var handler = undefined;
+    if (annotation.handler) handler = annotation.handler;
+    else handler = this.handlers[image.src][index];
+
+    handler.deleteAnnotation(annotation);
+
   }
 
   AnnotoriousImagePlugin.prototype['drawAnnotationHighlights'] = function(image, index, visibleHighlights) {

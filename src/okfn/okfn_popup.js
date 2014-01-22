@@ -14,6 +14,12 @@ annotorious.okfn.Popup = function(image, eventBroker, wrapperElement) {
   this._text = goog.dom.query('.annotorious-popup-text', this.element)[0];
 
   /** @private **/
+  this._user = goog.dom.query('.annotorious-popup-user', this.element)[0];
+
+  /** @private **/
+  this._replyCount = goog.dom.query('.annotorious-popup-reply-count', this.element)[0];
+
+  /** @private **/
   this._image = image;
 
   /** @private **/
@@ -120,9 +126,16 @@ annotorious.okfn.Popup.prototype.setPosition = function(xy) {
  */
 annotorious.okfn.Popup.prototype.setAnnotation = function(annotation) {
   this._currentAnnotation = annotation;
+
   if (annotation.text)
     this._text.innerHTML = annotation.text.replace(/\n/g, '<br/>');
   else
     this._text.innerHTML = '<span class="annotorious-popup-empty">No comment</span>';
+
+  if (annotation.user)
+    this._user.innerHTML = annotation.user;
+
+  if (annotation.reply_count)
+    this._replyCount.innerHTML = annotation.reply_count;
 }
 

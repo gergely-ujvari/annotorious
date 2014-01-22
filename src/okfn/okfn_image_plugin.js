@@ -299,6 +299,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
             // Found our annotation
             ann.text = annotation.text;
+            ann.user = annotation.user;
+            ann.reply_count = annotation.reply_count;
             ann.id = annotation.id;
             ann.temporaryID = undefined;
             ann.source = annotation.source;

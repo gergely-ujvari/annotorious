@@ -134,8 +134,12 @@ annotorious.okfn.Popup.prototype.setAnnotation = function(annotation) {
 
   if (annotation.user)
     this._user.innerHTML = annotation.user;
+  else
+    this._user.innerHTML = "";
 
   if (annotation.reply_count)
     this._replyCount.innerHTML = annotation.reply_count;
+  else
+    this._replyCount.innerHTML = "";
 }
 

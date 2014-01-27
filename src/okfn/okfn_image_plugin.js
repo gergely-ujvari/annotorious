@@ -229,6 +229,8 @@ window['Annotorious']['ImagePlugin'] = (function() {
 
   AnnotoriousImagePlugin.prototype['getHighlightsForImage'] = function(image, index) {
     var highlights = [];
+    if (!this.handlers[image.src]) return highlights;
+
     var handler = this.handlers[image.src][index];
     if (handler) {
         handler._imageAnnotator._viewer._annotations.forEach(function(ann) {

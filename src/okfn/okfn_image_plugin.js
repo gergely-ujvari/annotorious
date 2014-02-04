@@ -79,6 +79,7 @@ annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElemen
 
       self._imageAnnotator.addAnnotation(annotation);
       self._imageAnnotator.stopSelection();
+      goog.dom.classes.remove(self._imageAnnotator.element, 'annotorious-selection-in-progress');
       self._imagePlugin.annotate(self._imageAnnotator._image, self._index, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
     }
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, this._newSelectionHandler);
@@ -93,6 +94,7 @@ annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElemen
             okfnAnnotations.push(annotation.highlight.annotation);
         })
 
+        goog.dom.classes.remove(self._imageAnnotator.element, 'annotorious-selection-in-progress');
         self._imagePlugin.showAnnotations(okfnAnnotations);
       }
 
@@ -111,6 +113,7 @@ annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElemen
 
     this._eventDownListener = goog.events.listen(activeCanvas, annotorious.events.ui.EventType.DOWN, function(event) {
         self.clickEvent = event;
+        goog.dom.classes.add(self._imageAnnotator.element, 'annotorious-selection-in-progress');
     });
 
     this._eventMoveListener =goog.events.listen(activeCanvas, annotorious.events.ui.EventType.MOVE, function(event) {

@@ -81,6 +81,7 @@ annotorious.okfn.ImagePlugin = function(image, index, imagePlugin, wrapperElemen
       self._imageAnnotator.stopSelection();
       goog.dom.classes.remove(self._imageAnnotator.element, 'annotorious-selection-in-progress');
       self._imagePlugin.annotate(self._imageAnnotator._image, self._index, event.shape.type, event.shape.geometry, temporaryImageID, annotation);
+      event.mouseEvent.stopPropagation();
     }
     this._imageAnnotator._eventBroker.addHandler(annotorious.events.EventType.SELECTION_COMPLETED, this._newSelectionHandler);
 
